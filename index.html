@@ -228,6 +228,10 @@ details.rule p{font-size:14px;margin:6px 0 0;color:var(--muted)}
 .field input,.field select,textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
 textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid2>*{min-width:0}
+/* iOS Safari le da a la fecha su propio alto y un ancho mínimo: la igualamos a los selects */
+.field input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block;line-height:1.25;text-align:left}
+.field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.25em}
 .checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .check{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px}
 .check input{width:20px;height:20px;accent-color:var(--accent)}
