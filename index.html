@@ -832,8 +832,8 @@ function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r));if(
   return`<div class="stack">${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
    <p class="g-res">${esc(g.res)}</p>${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
-function vStatsRound(r){const p=Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
-  const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="sp" data-v="${i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
+function vStatsRound(r,hist){const mk=meKey(),hp=hist?idxOf(r,S.histP,mk):-1,p=hist?(hp>=0?hp:r.me!=null?r.me:0):Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
+  const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="${hist?"hp":"sp"}" data-v="${hist?esc(pk(r,i,mk)):i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
   if(!o.n)return`<div class="stack">${chips}<p class="muted">${esc(nm(r,p))} todavía no tiene hoyos cargados.</p>${vHcp(nm(r,p),r.me===p)}</div>`;
   const grp=r.players.map((n,i)=>{const s=stats(r,i);return`<tr><td style="text-align:left">${esc(n)}</td><td>${s.n?s.s+" ("+toPar(s.s-s.par)+")":"–"}</td><td>${pct(s.fw,s.fwN)}</td><td>${pct(s.gir,s.girN)}</td><td>${s.pN?(s.putts/s.pN).toFixed(1).replace(".",","):"–"}</td></tr>`}).join("");
   return`<div class="stack">${chips}${statBlocks(o,tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`),tile("Penalidades",o.pen,"golpes de penalidad"))}
@@ -873,7 +873,11 @@ function histPick(ps){const mk=meKey(),sel=ps.some(e=>e.k===S.histP)?S.histP:ps[
 function addStats(a,b){["s","par","n","fw","fwN","fwL","fwR","gir","girN","putts","pN","three","one","pen","bk","ss"].forEach(k=>a[k]+=b[k]);
   Object.keys(a.dist).forEach(k=>a.dist[k]+=b.dist[k]);[3,4,5].forEach(t=>{a.pt[t][0]+=b.pt[t][0];a.pt[t][1]+=b.pt[t][1]});return a}
 const zeroStats=()=>({s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}});
-function vStatsHist(){const ps=people();
+function histSel(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1));if(!list.length)return{html:"",r:null};
+  const r=list.find(x=>x.id===S.histRound)||null;
+  return{r,html:`<div class="field"><label class="label" for="histsel">Vueltas</label><select id="histsel"><option value="">Todas las vueltas juntas (${list.length})</option>${list.map(x=>`<option value="${esc(x.id)}"${r&&r.id===x.id?" selected":""}>${fmtDate(x.date)} · ${x.n===18?"18 hoyos":x.start===0?"Ida":"Vuelta"} · ${esc(x.players.join(", "))}</option>`).join("")}</select></div>`}}
+function vStatsHist(){const hs_=histSel();if(hs_.r)return`<div class="stack">${hs_.html}${vStatsRound(hs_.r,true)}</div>`;return hs_.html+vStatsAll()}
+function vStatsAll(){const ps=people();
   if(!ps.length)return`<p class="muted">Todavía no hay vueltas. Cuando cargues alguna, acá vas a ver los números de cada jugador con todas sus vueltas juntas.</p>`;
   const{sel,mk,chips}=histPick(ps),who=ps.find(e=>e.k===sel);
   const rs=S.rounds.map(r=>({r,p:idxOf(r,sel,mk)})).filter(e=>e.p>=0).map(e=>({...e,x:stats(e.r,e.p)})).filter(e=>e.x.n).sort((a,b)=>b.r.date.localeCompare(a.r.date));
@@ -917,7 +921,8 @@ function gWin(k,r){const all=ids(r),[A,B]=r.teams,top=(v,hi)=>{const m=hi?Math.m
    case"stab2":case"nines":case"acey":case"chairman":case"garbage":case"greenies":case"bbb":{const run=phRun(r,k);if(!run.length)return[];return[{pl:all,w:top(phTot(r,run),true)}]}
    case"stableford":{const t=all.map(p=>{let s=0;L.forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return s});return[{pl:all,w:top(t,true)}]}}
   return[]}
-function vGamesHist(){const mk=meKey(),done=S.rounds.filter(finished),names=new Map(people().map(e=>[e.k,e.name]));
+function vGamesHist(){const hs_=histSel();if(hs_.r)return`<div class="stack">${hs_.html}${vGamesRound(hs_.r)}</div>`;return hs_.html+vGamesAll()}
+function vGamesAll(){const mk=meKey(),done=S.rounds.filter(finished),names=new Map(people().map(e=>[e.k,e.name]));
   const intro=done.length?`<p class="note">${done.length} vuelta${done.length===1?"":"s"} terminada${done.length===1?"":"s"}. Cuenta quién ganó cada juego; los empates arriba cuentan para todos los empatados.</p>`
     :`<p class="note">Todavía no hay vueltas terminadas. Estos son todos los juegos que podés jugar y cómo se juega cada uno.</p>`;
   return`<div class="stack">${intro}${GAMES.map(([k,t,rule])=>{const tab=new Map();let n=0;
@@ -1111,6 +1116,7 @@ function onSubmit(e){if(e.target.id!=="setup")return;e.preventDefault();readDraf
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.tee=tee;r.tees=tees;r.me=meI;
   S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0)}
 function onChange(e){if(e.target.id==="themesel"){S.theme=e.target.value;save();render();return}
+  if(e.target.id==="histsel"){S.histRound=e.target.value||null;save();render();return}
   if(e.target.id==="su-holes"&&ui.draft){readDraft();render();return}
   if(e.target.id==="su-tee"&&ui.draft){readDraft();ui.draft.players.forEach(q=>q.tee=ui.draft.tee);render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
