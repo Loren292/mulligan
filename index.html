@@ -798,11 +798,16 @@ function vIncoming(){const r=ui.incoming;
   <button class="btn" data-a="indrop">Descartar</button></div>`}
 function fmtDate(d){const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`}
 function todayIso(){const t=new Date();return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`}
+// Quién es "yo" en este celular: el último nombre marcado como Yo, con la salida que usó la última vez
+function myself(){const rs=S.rounds.filter(r=>r.me!=null&&r.players[r.me]).sort((a,b)=>b.date.localeCompare(a.date));
+  const name=S.meName||(rs[0]?rs[0].players[rs[0].me]:""),r=name?rs.find(x=>pkey(x.players[x.me])===pkey(name)):null;
+  return{name,tee:r?teeK(r,r.me):null}}
+// Vuelta nueva: arranca solo con vos; los demás se agregan con "+ Agregar jugador"
 function makeDraft(er){const last=er||R();
-  const players=last?last.players.map((n,i)=>({name:n,team:last.teams[0].includes(i)?"A":"B",tee:teeK(last,i),orig:er?i:undefined,me:er?er.me===i:!!S.meName&&pkey(n)===pkey(S.meName)})):[{name:"",team:"A"},{name:"",team:"A"},{name:"",team:"B"},{name:"",team:"B"}];
   const games={};GAMES.forEach(([k])=>games[k]=last?last.games[k]!==false:true);
-  if(er)return{edit:er.id,date:er.date,tee:er.tee||"blanca",holes:er.n===18?"18":er.start===0?"front":"back",players,games};
-  return{date:todayIso(),tee:(last&&last.tee)||"blanca",holes:"18",players,games}}
+  if(!er){const me=myself(),tee=me.tee||(last&&last.tee)||"blanca";return{date:todayIso(),tee,holes:"18",players:[{name:me.name,team:"A",tee,me:true}],games}}
+  const players=er.players.map((n,i)=>({name:n,team:er.teams[0].includes(i)?"A":"B",tee:teeK(er,i),orig:i,me:er.me===i}));
+  return{edit:er.id,date:er.date,tee:er.tee||"blanca",holes:er.n===18?"18":er.start===0?"front":"back",players,games}}
 function readDraft(){const d=ui.draft;if(!d||!document.getElementById("setup"))return;
   const v=id=>document.getElementById(id);d.date=v("su-date").value;d.tee=v("su-tee").value;d.holes=v("su-holes").value;
   d.players.forEach((p,i)=>{p.name=v("su-p"+i).value});GAMES.forEach(([k])=>{const c=v("su-g-"+k);if(c&&!c.disabled)d.games[k]=c.checked})}
