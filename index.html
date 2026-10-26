@@ -551,6 +551,24 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* marcador en vivo */
+.live{display:flex;flex-direction:column;gap:5px;width:100%;min-width:0;overflow:hidden;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:9px 12px;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;min-width:0;width:100%}
+.lv-k{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex:none}
+.lv-v{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;text-align:right;font-variant-numeric:tabular-nums}
+.lv-more{font-size:12px;color:var(--muted);text-align:right}
+.mg .live{background:var(--blk);color:var(--on-blk2);border:0;border-radius:14px;padding:10px 14px}
+.mg .live .lv-k{color:var(--on-blk)}
+.mg .live .lv-more{color:var(--on-blk2);opacity:.75}
+.royal .live{border-radius:2px;border-left-color:var(--brass)}
+/* avisos para cuidar los datos */
+.safe{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.safe>div:first-child{display:flex;flex-direction:column;gap:3px;flex:1 1 220px;min-width:0}
+.safe .note{margin:0}
+.mg .safe{border:1.5px solid var(--ink);border-radius:14px}
+.royal .safe{border:1px solid var(--brass);border-radius:2px}
+.row.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shot{display:block;width:100%;max-height:62vh;object-fit:contain;border-radius:12px;background:var(--sunk);box-shadow:0 6px 24px rgba(0,0,0,.18)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -926,6 +944,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
    ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
    <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div>
   <div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`;
+  html+=vLive(r);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
   if(r.games.wolf&&r.players.length===4){const w=k%4,dec=r.wolf[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span><span class="label">Lobo</span> <b>${esc(nm(r,w))}</b></span><span class="note">elige compañero</span></div>
@@ -959,7 +978,7 @@ function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab
   if(r.n===18)body+=rowSub("Vuelta",L.slice(9));body+=rowSub("Total",L);
   return`<div class="stack"><div class="tablewrap"><table class="card"><thead><tr><th>Hoyo</th><th>Par</th>${r.players.map((n,p)=>`<th>${esc(n)}${teeSet(r).length>1?`<br>${teeDot(CRS(r),teeK(r,p))}`:""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
   <div class="legend"><span class="sc e">3</span>Águila <span class="sc b">3</span>Birdie <span class="sc bo">5</span>Bogey <span class="sc d">6</span>Doble o más</div>
-  ${r.note?`<p class="note">${esc(r.note)}</p>`:""}</div>`}
+  ${r.note?`<p class="note">${esc(r.note)}</p>`:""}${CANSHARE&&hs(r).some(h=>r.d[h].some(x=>x.s!=null))?`<button class="btn" data-a="img" data-v="${r.id}">Compartir como imagen</button>`:""}</div>`}
 // Arriba de Stats y Juegos: ver la vuelta abierta o el historial de todas
 const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mostrar"><button data-a="${a}" data-v="round" aria-pressed="${m==="round"}">Esta vuelta</button><button data-a="${a}" data-v="hist" aria-pressed="${m==="hist"}">Historial</button></div>`;
 function vGames(r){const m=r&&S.gamesMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("gmode",m):""}${m==="round"?vGamesRound(r):vGamesHist()}</div>`}
@@ -1096,19 +1115,128 @@ function vReceipt(r,on){const mk=meKey(),p=r.me!=null?r.me:0,key=pk(r,p,mk),o=st
    ${pb||bh?`<div class="row">${pb?`<span class="pill">Tu mejor vuelta de ${r.n===18?"18":"9"}</span>`:""}${bh?`<span class="pill soft">Mejor hoyo: el ${bh.h+1} (${relName(bh.d).toLowerCase()})</span>`:""}</div>`:""}
    ${others.length>1?`<div class="g-lines">${others.map((e,i)=>`<div><span>${i+1}. ${esc(nm(r,e.q))}${e.q===r.me?" (vos)":""}</span><span>${e.x.s} (${toPar(e.x.s-e.x.par)})</span></div>`).join("")}</div>`:""}
    ${games?`<div class="label">Juegos</div><div class="g-lines">${games}</div>`:""}
-   ${CANSHARE?`<button class="btn" data-a="share" data-v="${r.id}">Compartir la vuelta</button>`:""}</section>`}
+   ${unsaved()>=3?`<div class="safe"><div><b>Hace ${unsaved()} vueltas que no guardás una copia</b><span class="note">Si se borran los datos del navegador, se pierden.</span></div><button class="btn small" data-a="bkfile">Guardar copia</button></div>`:""}
+   ${CANSHARE?`<div class="row two"><button class="btn primary" data-a="img" data-v="${r.id}">Compartir imagen</button><button class="btn" data-a="share" data-v="${r.id}">Compartir link</button></div>`:""}</section>`}
+/* ---------- marcador en vivo ---------- */
+// Una línea por juego con cómo viene; los mensajes que solo piden cargar algo no se muestran
+// Primero los partidos (por parejas o mano a mano), después el resto en el orden de siempre
+const LIVE1=["fourball","nassau","rr","sixes","bba","lowhigh","scotch","vegas","wolf"],liveOrd=k=>{const i=LIVE1.indexOf(k);return i<0?100+GAMES.findIndex(g=>g[0]===k):i};
+function liveRows(r){const me=r.me!=null?r.me:0,rows=[];
+  GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r)).sort((a,b)=>liveOrd(a[0])-liveOrd(b[0])).forEach(([k,t])=>{let g;try{g=GFN[k](r)}catch(e){return}
+    // Match play: con 2 jugadores es un solo partido; con más, los de quien se marcó "Yo"
+    if(k==="rr"){g.lines.filter(([a])=>a.split(" vs ").length===2&&a.split(" vs ").includes(nm(r,me))).forEach(([a,b])=>rows.push([r.players.length>2?"vs "+a.split(" vs ").find(x=>x!==nm(r,me)):"Match play",b]));return}
+    let v=g.res;if(k==="nassau"){const tl=g.lines.find(l=>l[0]==="Total");if(tl)v="Total: "+tl[1]}
+    if(!v||/^(Marcá|Cargá|Ningún|Sin hoyos)/.test(v))return;rows.push([t.replace(/ match play$/,"").replace(/ \(.*\)$/,""),v])});
+  return rows}
+function vLive(r){if(!hs(r).some(h=>r.d[h].some(x=>x.s!=null)))return"";const rows=liveRows(r),max=3,more=rows.length-max;if(!rows.length)return"";
+  return`<button type="button" class="live" data-a="live" aria-label="Cómo vienen los juegos. Tocá para ver el detalle">${rows.slice(0,max).map(([a,b])=>`<span class="lv"><span class="lv-k">${esc(a)}</span><span class="lv-v">${esc(b)}</span></span>`).join("")}${more>0?`<span class="lv-more">+${more} ${more===1?"juego":"juegos"} más</span>`:""}</button>`}
+
+/* ---------- que no se pierdan las vueltas ---------- */
+// Vueltas cerradas que no estaban en la última copia guardada
+const unsaved=()=>S.rounds.filter(r=>r.closed&&!(S.bkIds||[]).includes(r.id)).length;
+function markBackup(){S.bkIds=S.rounds.filter(r=>r.closed).map(r=>r.id);S.bkAt=todayIso()}
+const coarse=()=>{try{return matchMedia("(pointer: coarse)").matches}catch(e){return false}};
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1;
+const standalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}};
+// Safari borra lo guardado por un sitio que no se abre en 7 días, salvo que esté en la pantalla de inicio;
+// los otros navegadores pueden borrarlo si falta lugar. Esto les pide que no lo hagan.
+let persisted=false,installEv=null;
+async function askPersist(){try{if(!S.rounds.length||!navigator.storage||!navigator.storage.persist)return;persisted=await navigator.storage.persisted()||await navigator.storage.persist()}catch(e){}}
+// En el celular abre el menú de compartir (Archivos, Fotos, WhatsApp); en la compu lo descarga.
+// Devuelve true si salió, false si se canceló y null si falló
+async function giveFile(blob,name,title){const f=typeof File==="function"?new File([blob],name,{type:blob.type}):null;
+  if(f&&coarse()&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title});return true}catch(e){if(e&&e.name==="AbortError")return false}}
+  try{const a=document.createElement("a"),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return true}catch(e){return null}}
+async function backupFile(){const ids=S.rounds.filter(r=>r.closed).map(r=>r.id),at=todayIso();
+  const ok=await giveFile(new Blob([JSON.stringify({...S,bkIds:ids,bkAt:at})],{type:"application/json"}),`mulligan-${at}.json`,"Copia de Mulligan");
+  if(ok){S.bkIds=ids;S.bkAt=at;save();render();toast("Copia guardada")}else if(ok===null)toast("No se pudo guardar la copia")}
+function vSafe(){let h="";const n=unsaved();
+  if(n)h+=`<div class="safe"><div><b>${n===1?"Hay 1 vuelta":"Hay "+n+" vueltas"} sin copia</b><span class="note">Las vueltas viven solo en este celular. Guardá una copia en Archivos, Drive o WhatsApp.</span></div><button class="btn small primary" data-a="bkfile">Guardar copia</button></div>`;
+  if(CANSHARE&&coarse()&&!standalone()&&!S.a2hsOff){const ios=isIOS();
+    h+=`<div class="safe"><div><b>Instalá Mulligan</b><span class="note">${ios?"En Safari tocá Compartir y después <b>Agregar a inicio</b>. Se abre como una app, funciona sin señal y el iPhone no borra las vueltas aunque pases unos días sin abrirla.":installEv?"Queda en la pantalla de inicio, se abre como una app y funciona sin señal.":"Desde el menú del navegador elegí <b>Instalar app</b> o <b>Agregar a la pantalla principal</b>. Se abre como una app y funciona sin señal."}</span></div>
+    <div class="row">${!ios&&installEv?'<button class="btn small primary" data-a="install">Instalar</button>':""}<button class="btn small" data-a="a2hsoff">${!ios&&installEv?"Ahora no":"Listo"}</button></div></div>`}
+  return h}
+
+/* ---------- imagen de la vuelta ---------- */
+// Se dibuja con los colores y las letras del tema elegido, desde el punto de vista de quien se marcó "Yo"
+async function roundImage(r){const W=1080,pad=64,ip=44,gv=getVar,disp=gv("--display"),body=gv("--body");
+  try{await Promise.all([`700 100px ${disp}`,`600 100px ${disp}`,`600 40px ${body}`,`700 40px ${body}`].map(f=>document.fonts.load(f)))}catch(e){}
+  const C={bg:gv("--bg"),sf:gv("--surface"),sunk:gv("--sunk"),ink:gv("--ink"),mu:gv("--muted"),ln:gv("--line"),ac:gv("--accent"),red:gv("--red"),gold:gv("--gold")};
+  const mg=S.theme.startsWith("mulligan"),rad=S.theme==="royal"||S.theme==="lux"?8:32,hl=mg?gv("--volt"):C.ac;
+  const cv=document.createElement("canvas");cv.width=W;cv.height=3200;const x=cv.getContext("2d");
+  const F=(w,px,f)=>{x.font=`${w} ${px}px ${f||body}`};
+  const fit=(t,max)=>{t=String(t);if(x.measureText(t).width<=max)return t;while(t.length>1&&x.measureText(t+"…").width>max)t=t.slice(0,-1);return t+"…"};
+  const T=(t,X,Y,o={})=>{F(o.w||600,o.px||32,o.f);x.fillStyle=o.c||C.ink;x.textAlign=o.al||"left";x.textBaseline=o.bl||"alphabetic";x.fillText(o.max?fit(t,o.max):t,X,Y)};
+  const box=(X,Y,w,h,rr,fill)=>{x.beginPath();x.moveTo(X+rr,Y);x.arcTo(X+w,Y,X+w,Y+h,rr);x.arcTo(X+w,Y+h,X,Y+h,rr);x.arcTo(X,Y+h,X,Y,rr);x.arcTo(X,Y,X+w,Y,rr);x.closePath();x.fillStyle=fill;x.fill()};
+  const card=(Y,h)=>{box(pad,Y,W-2*pad,h,rad,C.sf);x.strokeStyle=C.ln;x.lineWidth=2;x.stroke()};
+  x.fillStyle=C.bg;x.fillRect(0,0,W,cv.height);
+  const p=r.me!=null?r.me:0,o=stats(r,p),L=hs(r),c=CRS(r),tp=o.s-o.par,full=o.n===r.n;
+  // cabecera: la bandera del ícono, el nombre y la fecha
+  let y=pad;x.fillStyle=C.ink;x.fillRect(pad+4,y,7,58);x.fillStyle=hl;x.beginPath();x.moveTo(pad+11,y);x.lineTo(pad+50,y+14);x.lineTo(pad+11,y+28);x.closePath();x.fill();
+  if(mg){x.strokeStyle=C.ink;x.lineWidth=2;x.stroke()}
+  T("MULLIGAN",pad+66,y+50,{f:disp,w:700,px:54});T(fmtDate(r.date),W-pad,y+48,{px:32,c:C.mu,al:"right"});
+  y+=104;T([c.name,r.n===18?"18 hoyos":r.start===0?"Ida":"Vuelta",teeSet(r).map(k=>c.tees[k].name).join(" / ")].join(" · "),pad,y,{px:30,c:C.mu,max:W-2*pad});
+  // el score grande
+  // las letras serif tienen números que bajan de la línea (el 9 de Playfair): los recuadros se corren lo que haga falta
+  y+=34;F(700,280,disp);const m0=x.measureText(String(o.s)),sw=m0.width,gap=Math.max(36,(m0.actualBoundingBoxDescent||0)+28),h1=ip+200+gap+104+ip,bx=pad+ip,by=y+ip+200;card(y,h1);
+  if(mg){x.fillStyle=S.theme==="mulligan-dark"?"rgba(212,255,58,.32)":hl;x.fillRect(bx-8,by-118,sw+16,92)}
+  T(String(o.s),bx,by,{f:disp,w:700,px:280});
+  T(toPar(tp),bx+sw+36,by-118,{f:disp,w:700,px:110,c:mg?C.ink:tp<0?C.red:C.ink});
+  T(nm(r,p),bx+sw+40,by-58,{w:700,px:36,max:W-2*pad-ip-sw-60});T(full?"Vuelta completa":o.n+" de "+r.n+" hoyos",bx+sw+40,by-14,{px:30,c:C.mu,max:W-2*pad-ip-sw-60});
+  const birdies=o.dist.e+o.dist.b,ks=[[birdies,birdies===1?"Birdie":"Birdies"],[o.dist.p,o.dist.p===1?"Par":"Pares"],[o.pN?o.putts:"–","Putts"],[o.fwN?pct(o.fw,o.fwN):"–","Fairways"]];
+  const kw=(W-2*pad-2*ip-3*16)/4,ky=y+h1-ip-104;
+  ks.forEach(([v,l],i)=>{const kx=pad+ip+i*(kw+16);box(kx,ky,kw,104,rad/2,C.sunk);T(String(v),kx+kw/2,ky+60,{f:disp,w:700,px:52,al:"center",c:i===0&&birdies>0?(mg?C.ink:C.ac):C.ink});T(l,kx+kw/2,ky+90,{px:24,c:C.mu,al:"center",max:kw-12})});
+  y+=h1+28;
+  // la tarjeta: hasta 4 jugadores en filas; con más, solo quien se marcó "Yo"
+  const who=r.players.length<=4?ids(r):[p],blocks=(r.n===18?[L.slice(0,9),L.slice(9)]:[L]).filter(bl=>bl.some(h=>who.some(q=>sc(r,h,q)!=null))),rh=66,lw=170,tw=104,cw=(W-2*pad-2*ip-lw-tw)/9;
+  const bh=ip+rh*(2+who.length)+ip,ch=blocks.length*bh;card(y,ch);
+  const mark=(v,par,cx,cy)=>{const d=v-par,R2=22;x.lineWidth=3;
+    if(d<0){x.strokeStyle=d<=-2?C.gold:C.red;x.beginPath();x.arc(cx,cy,R2,0,7);x.stroke();if(d<=-2){x.beginPath();x.arc(cx,cy,R2+6,0,7);x.stroke()}}
+    else if(d>0){x.strokeStyle=d===1?C.mu:C.ink;x.strokeRect(cx-R2,cy-R2,2*R2,2*R2);if(d>=2)x.strokeRect(cx-R2-6,cy-R2-6,2*R2+12,2*R2+12)}
+    T(String(v),cx,cy+2,{f:disp,w:600,px:36,al:"center",bl:"middle",c:d<0?(d<=-2?C.gold:C.red):C.ink})};
+  blocks.forEach((bl,bi)=>{let yy=y+bi*bh+ip;const X0=pad+ip;
+    if(bi>0){x.fillStyle=C.ln;x.fillRect(pad+ip,y+bi*bh,W-2*pad-2*ip,2)}
+    T(r.n===18?(bl[0]>=9?"Vuelta":"Ida"):"Hoyo",X0,yy+rh/2,{w:700,px:26,c:C.mu,bl:"middle"});bl.forEach((h,i)=>T(String(h+1),X0+lw+cw*i+cw/2,yy+rh/2,{w:700,px:26,c:C.mu,al:"center",bl:"middle"}));T("Tot",X0+lw+9*cw+tw/2,yy+rh/2,{w:700,px:26,c:C.mu,al:"center",bl:"middle"});
+    yy+=rh;T("Par",X0,yy+rh/2,{px:28,c:C.mu,bl:"middle"});bl.forEach((h,i)=>T(String(P(r)[h]),X0+lw+cw*i+cw/2,yy+rh/2,{px:28,c:C.mu,al:"center",bl:"middle"}));T(String(bl.reduce((a,h)=>a+P(r)[h],0)),X0+lw+9*cw+tw/2,yy+rh/2,{px:28,c:C.mu,al:"center",bl:"middle"});
+    who.forEach(q=>{yy+=rh;x.fillStyle=C.ln;x.fillRect(X0,yy,W-2*pad-2*ip,1.5);let t=0,any=false;
+      T(nm(r,q),X0,yy+rh/2,{w:700,px:28,bl:"middle",max:lw-12});
+      bl.forEach((h,i)=>{const v=sc(r,h,q);if(v==null){T("·",X0+lw+cw*i+cw/2,yy+rh/2,{px:30,c:C.mu,al:"center",bl:"middle"});return}t+=v;any=true;mark(v,PP(r,q)[h],X0+lw+cw*i+cw/2,yy+rh/2)});
+      T(any?String(t):"–",X0+lw+9*cw+tw/2,yy+rh/2+2,{f:disp,w:700,px:40,al:"center",bl:"middle"})})});
+  y+=ch+28;
+  // posiciones y juegos
+  const pos=ids(r).map(q=>({q,x:stats(r,q)})).filter(e=>e.x.n).sort((a,b)=>(a.x.s-a.x.par)-(b.x.s-b.x.par)||a.x.s-b.x.s);
+  const gl=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r)).map(([k,t])=>{try{return[k==="rr"&&r.players.length>2?"Match play":t,GFN[k](r).res]}catch(e){return null}}).filter(g=>g&&g[1]&&!/^(Marcá|Cargá|Ningún|Sin hoyos)/.test(g[1])).slice(0,8);
+  const lines=(pos.length>1?1+pos.length:0)+(gl.length?1+gl.length:0);
+  if(lines){const lh=58,hh=ip*2+lines*lh+(pos.length>1&&gl.length?20:0);card(y,hh);let yy=y+ip;const X0=pad+ip,X1=W-pad-ip;
+    if(pos.length>1){T("POSICIONES",X0,yy+lh/2,{w:700,px:24,c:C.mu,bl:"middle"});yy+=lh;
+      pos.forEach((e,i)=>{T(`${i+1}. ${nm(r,e.q)}`,X0,yy+lh/2,{w:e.q===p?700:600,px:32,bl:"middle",max:560});T(`${e.x.s} (${toPar(e.x.s-e.x.par)})`,X1,yy+lh/2,{f:disp,w:700,px:38,al:"right",bl:"middle"});yy+=lh});
+      if(gl.length)yy+=20}
+    if(gl.length){T("JUEGOS",X0,yy+lh/2,{w:700,px:24,c:C.mu,bl:"middle"});yy+=lh;
+      gl.forEach(([a,b])=>{F(600,30);const aw=Math.min(x.measureText(a).width,360);T(a,X0,yy+lh/2,{px:30,c:C.mu,bl:"middle",max:360});T(b,X1,yy+lh/2,{w:700,px:30,al:"right",bl:"middle",max:X1-X0-aw-36});yy+=lh})}
+    y+=hh+28}
+  T(location.host+location.pathname.replace(/\/(index\.html)?$/,""),W/2,y+30,{px:26,c:C.mu,al:"center"});
+  const out=document.createElement("canvas");out.width=W;out.height=y+30+pad;out.getContext("2d").drawImage(cv,0,0);return out}
+function openImage(t){if(!stats(t,t.me!=null?t.me:0).n){toast("Todavía no hay scores para mostrar");return}toast("Armando la imagen…");
+  roundImage(t).then(cv=>new Promise(res=>cv.toBlob(res,"image/png"))).then(bl=>{if(!bl)throw 0;closeImg();ui.img={blob:bl,url:URL.createObjectURL(bl),name:`mulligan-${t.date}.png`};render()}).catch(()=>toast("No se pudo armar la imagen"))}
+function closeImg(){if(ui.img)URL.revokeObjectURL(ui.img.url);ui.img=null}
+function vImg(){if(!ui.img)return"";
+  return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT"><div class="sheet-bg" data-a="imgclose"></div><div class="sheet-p">
+  <div class="grab"></div><div class="row" style="justify-content:space-between"><h2 id="imgT">Imagen de la vuelta</h2><button class="btn small" data-a="imgclose">Cerrar</button></div>
+  <img class="shot" src="${ui.img.url}" alt="Resumen de la vuelta: score, tarjeta, posiciones y juegos">
+  <button class="btn primary" data-a="imgshare">${coarse()?"Compartir":"Descargar"}</button><p class="note">Sale con los colores del tema que tengas elegido.</p></div></div>`}
 function getVar(v){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#888"}catch(e){return"#888"}}
 function vRounds(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date));
-  let html=`<div class="stack"><div class="row" style="justify-content:space-between"><h2>Vueltas</h2><button class="btn primary" data-a="setup">Nueva vuelta</button></div><div class="rlist">`;
+  let html=`<div class="stack"><div class="row" style="justify-content:space-between"><h2>Vueltas</h2><button class="btn primary" data-a="setup">Nueva vuelta</button></div>${vSafe()}<div class="rlist">`;
   if(!list.length)html+=`<p class="muted">Todavía no hay vueltas guardadas.</p>`;
   list.forEach(r=>{const tots=r.players.map((n,p)=>{const v=hs(r).map(h=>sc(r,h,p)).filter(x=>x!=null);return`${esc(n)} ${v.length?v.reduce((a,b)=>a+b,0):"–"}`}).join(" · ");
     html+=`<div class="ritem ${r.id===S.cur?"cur":""}"><div class="row" style="justify-content:space-between"><b>${fmtDate(r.date)}</b><span class="note">${crsLab(r)}${r.n===18?"18 hoyos":r.start===0?"Ida":"Vuelta"}</span></div>
     <div class="note">${tots}</div><div class="row"><span class="badge${r.closed?" done":""}">${r.closed?"Cerrada":"En juego"}</span>${r.id===S.cur?"":`<button class="btn small" data-a="open" data-v="${r.id}">Abrir</button>`}<button class="btn small" data-a="edit" data-v="${r.id}">Editar</button>${CANSHARE?`<button class="btn small" data-a="share" data-v="${r.id}">Compartir</button>`:""}<button class="btn small" data-a="${r.closed?"reopen":"close"}" data-v="${r.id}">${r.closed?"Reabrir":"Cerrar"}</button>
     ${ui.pendingDel===r.id?`<button class="btn small danger" data-a="delok" data-v="${r.id}">Confirmar borrado</button><button class="btn small" data-a="delno">Cancelar</button>`:`<button class="btn small" data-a="del" data-v="${r.id}">Borrar</button>`}</div></div>`});
   html+=`</div>${vCourses()}<div class="label" style="margin-top:8px">Copia de seguridad</div>
-  <p class="note">Los datos se guardan solo en este navegador. Exportá de vez en cuando y guardá el texto en Notas o WhatsApp.</p>
+  <p class="note">Los datos se guardan solo en este navegador. Guardá una copia de vez en cuando (en Archivos, Drive o WhatsApp) y la recuperás con Importar.
+   ${S.bkAt?"Última copia: "+fmtDate(S.bkAt)+".":"Todavía no guardaste ninguna copia."}${persisted?" El navegador tiene pedido no borrar los datos.":""}</p>
   <div class="row" style="justify-content:space-between"><span class="note">Versión ${VERSION.startsWith("__")?"local":VERSION}</span>${CANSHARE&&!VERSION.startsWith("__")?'<button class="btn small" data-a="chkupd">Buscar actualización</button>':""}</div>
-  <div class="row"><button class="btn" data-a="exp">${ui.exp?"Ocultar":"Exportar"}</button><button class="btn" data-a="imp">${ui.imp?"Ocultar":"Importar"}</button></div>`;
+  <div class="row"><button class="btn primary" data-a="bkfile">Guardar copia</button><button class="btn" data-a="exp">${ui.exp?"Ocultar":"Exportar"}</button><button class="btn" data-a="imp">${ui.imp?"Ocultar":"Importar"}</button></div>`;
   if(ui.exp)html+=`<textarea id="exp-text" readonly>${esc(JSON.stringify(S))}</textarea><button class="btn" data-a="copy" id="copy-btn">Copiar</button>`;
   if(ui.imp)html+=`<textarea id="imp-text" placeholder="Pegá acá el texto exportado"></textarea><div class="row"><button class="btn primary" data-a="impok">Importar y reemplazar</button><label class="btn" for="imp-file">Elegir archivo</label><input type="file" id="imp-file" accept=".json,.txt,application/json,text/plain" hidden></div>${ui.impErr?`<p class="err">${esc(ui.impErr)}</p>`:""}`;
   return html+`</div>`}
@@ -1307,7 +1435,7 @@ function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==
     return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
   <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
   <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
-function render(){applyTheme();document.getElementById("sheet").innerHTML=vSheet();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function render(){applyTheme();document.getElementById("sheet").innerHTML=vSheet()+vImg();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||((v==="setup"||v==="course")&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
   app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
@@ -1352,7 +1480,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"map":e.preventDefault();ui.map=!ui.map;break;
    case"setup":S.view="setup";ui.draft=makeDraft();scrollTop=true;break;
    case"edit":{const t=S.rounds.find(x=>x.id===v);if(!t)return;S.cur=v;S.view="setup";ui.draft=makeDraft(t);scrollTop=true;break}
-   case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
+   case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");askPersist();ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
    case"reopen":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=false;break}
    case"padd":readDraft();if(ui.draft.players.length<MAXP){const A=ui.draft.players.filter(p=>p.team==="A").length;ui.draft.players.push({name:"",team:A>ui.draft.players.length-A?"B":"A",tee:ui.draft.tee})}break;
    case"pdel":readDraft();if(ui.draft.players.length>1)ui.draft.players.splice(+v,1);break;
@@ -1376,15 +1504,22 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"incopy":keepIncoming(true);scrollTop=true;break;
    case"indrop":ui.incoming=null;ui.inCourse=null;clearHash();S.view=S.rounds.length?"games":"rounds";scrollTop=true;break;
    case"exp":ui.exp=!ui.exp;break;
+   case"bkfile":backupFile();return
+   case"live":S.view="games";S.gamesMode="round";scrollTop=true;break;
+   case"img":{const t=S.rounds.find(x=>x.id===v)||r;if(t)openImage(t);return}
+   case"imgshare":{const m=ui.img;if(m)giveFile(m.blob,m.name,"Mulligan").then(ok=>{if(ok===null)toast("No se pudo compartir la imagen")});return}
+   case"imgclose":closeImg();break;
+   case"a2hsoff":S.a2hsOff=true;break;
+   case"install":{const ev=installEv;if(!ev)return;ev.prompt();ev.userChoice.then(c=>{installEv=null;if(c&&c.outcome==="accepted")S.a2hsOff=true;save();render()}).catch(()=>{});return}
    case"imp":ui.imp=!ui.imp;ui.impErr="";break;
    case"copy":{const t=document.getElementById("exp-text");const done=()=>{b.textContent="Copiado"};
-     try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();b.textContent="Seleccionado: copialo"})}catch(err){t.select();b.textContent="Seleccionado: copialo"}return}
+     try{navigator.clipboard.writeText(t.value).then(()=>{done();markBackup();save()},()=>{t.select();b.textContent="Seleccionado: copialo"})}catch(err){t.select();b.textContent="Seleccionado: copialo"}return}
    case"impok":doImport(document.getElementById("imp-text").value);break;
    default:return}
   if(["s","sset","pt","pen","fw","bk","go","wolf","bbb","grn"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
   save();render();if(scrollTop)window.scrollTo(0,0)}
 function doImport(txt){try{const j=JSON.parse(txt);if(!j||!Array.isArray(j.rounds)||!j.rounds.length||!j.rounds.every(r=>r.d&&r.players))throw 0;
-  S=norm(j);if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr=""}
+  S=norm(j);markBackup();if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr=""}
   catch(e){ui.impErr="El texto no es una copia válida de la app. Pegá el texto completo que exportaste."}}
 function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();return}if(e.target.id!=="setup")return;e.preventDefault();readDraft();const d=ui.draft;
   const players=d.players.map(p=>p.name.trim());
@@ -1411,11 +1546,14 @@ function onChange(e){
     if(t.own&&!t.par.length){t.par=d.par.slice();t.si=d.si.slice()}render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
 function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
-  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&ui.themes){ui.themes=false;render()}cKey(e)});
+  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img)){ui.themes=false;closeImg();render()}cKey(e)});
   document.addEventListener("input",cInput);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
   const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.mode==="sistema")render()})}catch(e){}
-  checkHash();window.addEventListener("hashchange",checkHash);
+  checkHash();window.addEventListener("hashchange",checkHash);askPersist();
+  // Android y la compu ofrecen instalarla: el botón aparece en el aviso de Vueltas
+  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEv=e;if(S.view==="rounds")render()});
+  window.addEventListener("appinstalled",()=>{installEv=null;S.a2hsOff=true;save();if(S.view==="rounds")render()});
   // Instalable y sin conexión cuando se sirve desde el sitio (no dentro de Claude)
   if(CANSHARE&&"serviceWorker"in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){const had=!!navigator.serviceWorker.controller;
     navigator.serviceWorker.register("sw.js").then(reg=>document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})).catch(()=>{});
@@ -1443,7 +1581,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="bb634f20b2";
+const VERSION="846be1a3a1";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
