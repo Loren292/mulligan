@@ -171,8 +171,8 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .rel.under{color:var(--red)} .rel.par{color:var(--accent)} .rel.over{color:var(--muted)}
 /* Drive arriba; abajo Putts a la izquierda y Penal. + Bunker contra el margen derecho */
 .extras{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px 10px;align-items:end}
-.extras .ex:first-child{grid-column:1/-1}
-.extras .ex:nth-child(3){grid-column:3}
+.extras .ex:first-child{grid-column:1}
+.extras .ex:nth-child(2){grid-column:3}
 .extras .chip.bk{grid-column:4}
 .ex{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .ex .seg button{min-width:42px}
@@ -551,6 +551,23 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* fila del score con los putts al costado; abajo drive, penalidades y bunker en una sola fila */
+.score-row{justify-content:space-between;gap:8px}
+.score-row .pt-ex{flex:none;align-items:center}
+.p-id{display:flex;flex-direction:column;min-width:0;flex:1}
+.p-nl{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;overflow:hidden}
+.p-nl .p-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.p-nl .rel{flex:none;font-size:16px;line-height:1}
+.p-nl .badge{flex:none}
+.p-nl .note{margin:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
+.p-top{align-items:flex-start}
+.p-top .p-tot{flex:none}
+.extras{gap:8px}
+.extras .ex .seg button{min-width:36px}
+.extras .chip.bk{padding-left:12px;padding-right:12px}
+/* en los celulares angostos no entra todo en una fila: el drive pasa arriba */
+@media (max-width:360px){.extras{grid-template-columns:auto 1fr auto}.extras .ex:first-child{grid-column:1/-1}.extras .ex:nth-child(2){grid-column:2;justify-self:end}.extras .chip.bk{grid-column:3}
+  .pcard .score-row>.step button{width:40px}.pcard .score-row>.step .val{min-width:46px}.pcard .ex .step.sm button{width:30px}.pcard .ex .step.sm .val{min-width:30px}}
 /* orden de los jugadores */
 .grip{flex:none;display:grid;place-items:center;width:18px;height:44px;margin:0 -2px 0 -4px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
 .grip:active{cursor:grabbing}
@@ -984,11 +1001,11 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
     const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
-    html+=`<div class="pcard"><div class="p-top"><span class="p-name">${esc(name)}${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</span><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
+    // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
+    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
     <div class="score-row">${step}
-    <div class="rel-col"><div class="rel-in"><span class="rel ${rc}">${d==null?'<span class="note">Tocá el número para poner par</span>':relName(d)}</span><span class="badges">${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</span></div></div></div>
+    <div class="ex pt-ex"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
     <div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
-     <div class="ex"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
      </div></div>`});
@@ -1627,7 +1644,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="6d299f0c79";
+const VERSION="cd6bbf4b7f";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
