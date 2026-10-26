@@ -269,6 +269,26 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid2>*{min-width:0}
 .modeseg{width:100%}
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.receipt.fresh{animation:rise .35s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rc-big{display:flex;align-items:flex-end;gap:10px}
+.rc-big b{font-family:var(--display);font-weight:700;font-size:64px;line-height:.85;font-variant-numeric:tabular-nums}
+.rc-big span{font-family:var(--display);font-weight:700;font-size:26px;line-height:1;display:flex;flex-direction:column;gap:4px}
+.rc-big small{font-family:var(--body);font-weight:600;font-size:13px;color:var(--muted)}
+.rc-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.kpi{background:var(--sunk);border-radius:12px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.kpi b{font-family:var(--display);font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi b.hi{color:var(--accent)}
+.kpi span{font-size:11px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pill{display:inline-block;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.pill.soft{background:var(--accent-soft);color:var(--ink)}
+.mg .receipt{border-radius:20px}
+.mg .rc-big b{font-size:72px}
+.mg .rc-big b{background:linear-gradient(transparent 55%,var(--volt) 55% 85%,transparent 85%);padding:0 4px;margin-left:-4px}
+:root.t-mulligan-dark .rc-big b{background:linear-gradient(transparent 55%,rgba(212,255,58,.32) 55% 85%,transparent 85%)}
+.mg .kpi b.hi{color:var(--ink);background:var(--volt);color:var(--on-volt);border-radius:6px;padding:0 6px}
+.mg .pill{background:var(--blk);color:var(--on-blk)}
 .icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none;position:relative;padding:0}
 .icon-btn svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .icon-btn .sw{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
@@ -884,8 +904,8 @@ function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab
 const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mostrar"><button data-a="${a}" data-v="round" aria-pressed="${m==="round"}">Esta vuelta</button><button data-a="${a}" data-v="hist" aria-pressed="${m==="hist"}">Historial</button></div>`;
 function vGames(r){const m=r&&S.gamesMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("gmode",m):""}${m==="round"?vGamesRound(r):vGamesHist()}</div>`}
 function vStats(r){const m=r&&S.statsMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("smode",m):""}${m==="round"?vStatsRound(r):vStatsHist()}</div>`}
-function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r));if(!on.length)return`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
-  return`<div class="stack">${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
+function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r)),rc=r.closed?vReceipt(r,on):"";if(!on.length)return rc+`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
+  return`<div class="stack">${rc}${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
    <p class="g-res">${esc(g.res)}</p>${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
 function vStatsRound(r,hist){const mk=meKey(),hp=hist?idxOf(r,S.histP,mk):-1,p=hist?(hp>=0?hp:r.me!=null?r.me:0):Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
@@ -991,6 +1011,30 @@ function vGamesAll(){const mk=meKey(),done=S.rounds.filter(finished),names=new M
      <div class="g-lines">${rows.map(e=>`<div><span>${esc(names.get(e.key)||e.key)}${e.key===mk?" (vos)":""}</span><span>${snake?`${k==="fidget"?"perdió":"la tuvo"} ${e.l} de ${e.j}`:`${e.w} de ${e.j} (${Math.round(e.w/e.j*100)}%)`}</span></div>`).join("")}</div>
      <p class="note">${n} ${n===1?unit.replace(/s$/,"").replace("medias vuelta","media vuelta"):unit} jugad${k==="rabbit"?"a":k==="rr"?"o":"a"}${n===1?"":"s"}.</p>`;
     return`<section class="game"><div class="g-h"><h3>${t}</h3></div>${res}<details class="rule"${n?"":" open"}><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
+/* ---------- resumen de la vuelta cerrada ---------- */
+// Desde el punto de vista de quien se marcó "Yo" (o el primer jugador)
+function vReceipt(r,on){const mk=meKey(),p=r.me!=null?r.me:0,key=pk(r,p,mk),o=stats(r,p);if(!o.n)return"";
+  const full=o.n===r.n,tp=o.s-o.par,L=hs(r);
+  const birdies=o.dist.e+o.dist.b,pars=o.dist.p;
+  // vuelta anterior del mismo largo, completa
+  const prev=S.rounds.filter(x=>x!==r&&x.n===r.n&&x.date<=r.date&&(x.date<r.date||S.rounds.indexOf(x)<S.rounds.indexOf(r))).map(x=>({x,q:idxOf(x,key,mk)})).filter(e=>e.q>=0)
+    .map(e=>({...e,st:stats(e.x,e.q)})).filter(e=>e.st.n===e.x.n).sort((a,b)=>b.x.date.localeCompare(a.x.date))[0];
+  const vs=full&&prev?tp-(prev.st.s-prev.st.par):null;
+  // ¿mejor vuelta de este largo?
+  const same=S.rounds.filter(x=>x.n===r.n).map(x=>({x,q:idxOf(x,key,mk)})).filter(e=>e.q>=0).map(e=>stats(e.x,e.q)).filter((st,i,a)=>st.n===r.n);
+  const pb=full&&same.length>1&&same.every(st=>st.s-st.par>=tp);
+  // mejor hoyo: el más bajo respecto del par (el primero si empatan)
+  let bh=null;L.forEach(h=>{const v=sc(r,h,p);if(v==null)return;const d=v-PP(r,p)[h];if(!bh||d<bh.d)bh={h,d,v}});if(bh&&bh.d>0)bh=null;
+  const kpi=(b,l,hi)=>`<div class="kpi"><b${hi?' class="hi"':""}>${b}</b><span>${l}</span></div>`;
+  const others=ids(r).map(q=>({q,x:stats(r,q)})).filter(e=>e.x.n).sort((a,b)=>(a.x.s-a.x.par)-(b.x.s-b.x.par)||a.x.s-b.x.s);
+  const games=on.map(([k,t])=>{try{const g=GFN[k](r);return`<div><span>${esc(k==="rr"&&r.players.length>2?"Match play todos contra todos":t)}</span><span>${esc(g.res)}</span></div>`}catch(e){return""}}).join("");
+  return`<section class="receipt${ui.fresh===r.id?" fresh":""}"><div class="row" style="justify-content:space-between"><span class="label">Vuelta terminada · ${fmtDate(r.date)}</span><button class="btn small" data-a="reopen" data-v="${r.id}">Reabrir</button></div>
+   <div class="rc-big"><b>${o.s}</b><span>${toPar(tp)}<small>${esc(nm(r,p))} · ${full?(r.n===18?"18 hoyos":r.start===0?"Ida":"Vuelta"):o.n+" de "+r.n+" hoyos"}</small></span></div>
+   <div class="rc-kpis">${kpi(birdies,birdies===1?"Birdie":"Birdies",birdies>0)}${kpi(pars,pars===1?"Par":"Pares")}${kpi(o.pN?o.putts:"–","Putts")}${kpi(vs==null?"–":vs===0?"=":(vs<0?"−":"+")+Math.abs(vs),prev?"vs "+ddmm(prev.x.date):"vs anterior",vs!=null&&vs<0)}</div>
+   ${pb||bh?`<div class="row">${pb?`<span class="pill">Tu mejor vuelta de ${r.n===18?"18":"9"}</span>`:""}${bh?`<span class="pill soft">Mejor hoyo: el ${bh.h+1} (${relName(bh.d).toLowerCase()})</span>`:""}</div>`:""}
+   ${others.length>1?`<div class="g-lines">${others.map((e,i)=>`<div><span>${i+1}. ${esc(nm(r,e.q))}${e.q===r.me?" (vos)":""}</span><span>${e.x.s} (${toPar(e.x.s-e.x.par)})</span></div>`).join("")}</div>`:""}
+   ${games?`<div class="label">Juegos</div><div class="g-lines">${games}</div>`:""}
+   ${CANSHARE?`<button class="btn" data-a="share" data-v="${r.id}">Compartir la vuelta</button>`:""}</section>`}
 function getVar(v){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#888"}catch(e){return"#888"}}
 function vRounds(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date));
   let html=`<div class="stack"><div class="row" style="justify-content:space-between"><h2>Vueltas</h2><button class="btn primary" data-a="setup">Nueva vuelta</button></div><div class="rlist">`;
@@ -1151,7 +1195,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"map":e.preventDefault();ui.map=!ui.map;break;
    case"setup":S.view="setup";ui.draft=makeDraft();scrollTop=true;break;
    case"edit":{const t=S.rounds.find(x=>x.id===v);if(!t)return;S.cur=v;S.view="setup";ui.draft=makeDraft(t);scrollTop=true;break}
-   case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";scrollTop=true}break}
+   case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
    case"reopen":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=false;break}
    case"padd":readDraft();if(ui.draft.players.length<MAXP){const A=ui.draft.players.filter(p=>p.team==="A").length;ui.draft.players.push({name:"",team:A>ui.draft.players.length-A?"B":"A",tee:ui.draft.tee})}break;
    case"pdel":readDraft();if(ui.draft.players.length>1)ui.draft.players.splice(+v,1);break;
@@ -1229,7 +1273,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="2890896fcb";
+const VERSION="35e35ee67b";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
