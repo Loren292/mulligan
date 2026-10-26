@@ -86,7 +86,25 @@
   --bg:#f3f4ef; --surface:#ffffff; --sunk:#e7e9e2; --ink:#0b130e; --muted:#454f48; --line:#cdd2c8;
   --accent:#0a7a3d; --accent-ink:#ffffff; --accent-soft:#eefbc4;
   --red:#dc2f1c; --red-soft:#fde3df; --gold:#a26c00; --blue:#1b52cc;
-  --volt:#d4ff3a; --dock:#0b130e; --dock-muted:#a3ada6}
+  --volt:#d4ff3a; --dock:#0b130e; --dock-muted:#a3ada6;
+  --blk:#0b130e; --on-blk:#d4ff3a; --on-blk2:#ffffff; --on-volt:#0b130e; --done-line:#c9e27a}
+:root.t-mulligan-dark{
+  --bg:#0b120d; --surface:#151e18; --sunk:#202b23; --ink:#eef2ea; --muted:#a8b3aa; --line:#2b3830;
+  --accent:#3ddc7e; --accent-ink:#06170e; --accent-soft:#273312;
+  --red:#ff6b55; --red-soft:#3d1f19; --gold:#e8b53a; --blue:#7aa2ff;
+  --volt:#d4ff3a; --dock:#050906; --dock-muted:#8c978f;
+  --blk:#d4ff3a; --on-blk:#0b130e; --on-blk2:#0b130e; --on-volt:#0b130e; --done-line:#55661f; color-scheme:dark}
+:root.t-sand-dark{
+  --bg:#0d1a1e; --surface:#13252a; --sunk:#1b3137; --ink:#e9f1ef; --muted:#9db3b2; --line:#26404a;
+  --accent:#3fb7c6; --accent-ink:#04191c; --accent-soft:#163a40;
+  --red:#ff7a5c; --red-soft:#3d211a; --gold:#e2b43a; --blue:#79a6f0; color-scheme:dark}
+:root.t-anthropic-dark,:root.t-anthropic-green-dark{
+  --bg:#1f1e1d; --surface:#262624; --sunk:#30302e; --ink:#f0eee6; --muted:#a6a39a; --line:#3a3936;
+  --accent:#d97757; --accent-ink:#1f1e1d; --accent-soft:#3d2a22;
+  --red:#e2795a; --red-soft:#3b231c; --gold:#d4a440; --blue:#7fa2d9;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif; color-scheme:dark}
+:root.t-anthropic-green-dark{--accent:#8fae6f; --accent-soft:#2b3424}
 :root.t-anthropic{
   --bg:#f0eee6; --surface:#faf9f5; --sunk:#e8e6dc; --ink:#141413; --muted:#5e5d59; --line:#d6d3c6;
   --accent:#c6613f; --accent-ink:#ffffff; --accent-soft:#f4dfd5;
@@ -251,6 +269,25 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid2>*{min-width:0}
 .modeseg{width:100%}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none;position:relative;padding:0}
+.icon-btn svg{width:20px;height:20px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn .sw{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.mg .icon-btn{border:1.5px solid var(--ink)}
+.mg .icon-btn .sw{background:var(--volt)}
+.sheet{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.sheet-p{position:relative;width:100%;max-width:640px;margin:0 auto;background:var(--bg);color:var(--ink);border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;max-height:88vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.3)}
+.sheet-p .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 2px}
+.skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.skin{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:8px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.skin[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 1.5px var(--ink)}
+.skin .prev{height:76px;border-radius:10px;padding:9px;display:flex;flex-direction:column;justify-content:flex-end}
+.skin .pb{border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.skin .pb b{font-size:22px;font-weight:700;line-height:.9}
+.skin .pb i{display:block;height:5px;border-radius:3px;width:70%}
+.skin .nm{font-weight:700;font-size:14px;padding:0 4px}
+.skin .ds{font-size:12px;color:var(--muted);padding:0 4px 2px;line-height:1.3}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:80;background:var(--ink);color:var(--bg);border-radius:999px;padding:10px 16px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
 .ghead{grid-column:1/-1;margin:8px 0 -2px;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase}
 .checks .ghead:first-child{margin-top:0}
 .modeseg button{flex:1;height:40px;font-size:15px}
@@ -415,13 +452,15 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .mg .hole-no small{display:block;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 6px}
 .mg .hole-no b{font-weight:700;padding:0 4px;margin-left:-4px;background:linear-gradient(transparent 50%,var(--volt) 50% 80%,transparent 80%)}
 .mg .hole-facts{gap:6px}
+:root.t-mulligan-dark .hole-no b{background:linear-gradient(transparent 50%,rgba(212,255,58,.32) 50% 80%,transparent 80%)}
+:root.t-mulligan-dark .brand::before{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28'><path d='M5 2v24' stroke='%23eef2ea' stroke-width='2.6' stroke-linecap='round'/><path d='M6.3 2.6 21 8 6.3 13.4z' fill='%23d4ff3a' stroke='%23d4ff3a' stroke-width='1.6' stroke-linejoin='round'/></svg>")}
 .mg .fact{align-items:center;min-width:56px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 8px 7px}
 .mg .fact .label{font-size:10px;letter-spacing:.12em}
 .mg .fact .num{font-size:27px;font-weight:700;margin-top:2px}
 .mg .strip{gap:5px}
 .mg .strip button{border:0;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);border-radius:10px;padding:7px 0;font-weight:700;font-size:17px}
-.mg .strip button.done{background:var(--accent-soft);box-shadow:inset 0 0 0 1px #c9e27a}
-.mg .strip button[aria-current="true"]{background:var(--ink);color:var(--volt);box-shadow:none}
+.mg .strip button.done{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--done-line)}
+.mg .strip button[aria-current="true"]{background:var(--blk);color:var(--on-blk);box-shadow:none}
 .mg .pcard,.mg .game,.mg .tile,.mg .ritem,.mg .tablewrap,.mg .mapbox{border-radius:18px;border:1px solid var(--line);background:var(--surface)}
 .mg .pcard{padding:14px;gap:12px}
 .mg .p-name{font-family:var(--display);font-weight:700;font-size:23px;text-transform:uppercase;letter-spacing:.02em;line-height:1}
@@ -436,23 +475,23 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .mg .rel.over{color:var(--ink)}
 .mg .seg{border:0;background:var(--sunk);border-radius:11px;padding:2px}
 .mg .seg button,.mg .seg button + button{background:transparent;border:0;border-radius:9px;font-family:var(--display);font-size:15px;letter-spacing:.03em}
-.mg .seg button[aria-pressed="true"]{background:var(--ink);color:var(--volt)}
+.mg .seg button[aria-pressed="true"]{background:var(--blk);color:var(--on-blk)}
 .mg .chip{border:0;background:var(--sunk);font-family:var(--display);font-size:15px;letter-spacing:.03em}
-.mg .chip[aria-pressed="true"]{background:var(--ink);color:var(--volt)}
+.mg .chip[aria-pressed="true"]{background:var(--blk);color:var(--on-blk)}
 .mg .btn{border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:12px;font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.05em;text-transform:uppercase}
 .mg .btn.small{font-size:14px;padding:6px 11px}
-.mg .btn.primary{background:var(--ink);color:var(--volt);border-color:var(--ink)}
+.mg .btn.primary{background:var(--blk);color:var(--on-blk);border-color:var(--blk)}
 .mg .btn.danger{color:var(--red);border-color:var(--red)}
 .mg .btn:disabled{opacity:.35}
-.mg .badge{background:var(--volt);color:var(--ink);border-radius:6px}
+.mg .badge{background:var(--volt);color:var(--on-volt);border-radius:6px}
 .mg .badge.done{background:var(--sunk);color:var(--muted)}
-.mg .closedbar{background:var(--ink);color:#fff;border-radius:14px}
-.mg .closedbar .btn{background:transparent;color:var(--volt);border-color:var(--volt)}
+.mg .closedbar{background:var(--blk);color:var(--on-blk2);border-radius:14px}
+.mg .closedbar .btn{background:transparent;color:var(--on-blk2);border-color:currentColor}
 .mg .wolfbox{border:1.5px dashed var(--ink);border-radius:18px}
 .mg .ritem.cur{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .mg table.card th{color:var(--ink);font-family:var(--display);font-size:13px;letter-spacing:.1em;font-weight:700}
 .mg table.card td{border-bottom-color:var(--sunk)}
-.mg table.card tr.sub td{background:var(--ink);color:#fff;border-bottom-color:var(--ink)}
+.mg table.card tr.sub td{background:var(--blk);color:var(--on-blk2);border-bottom-color:var(--blk)}
 .mg .sc{font-weight:700}
 .mg .tile .big{font-size:38px}
 .mg .bar{height:10px;border-radius:5px}
@@ -463,19 +502,20 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .mg .field input,.mg .field select,.mg .prow input,.mg .check{border-radius:12px}
 .mg .check input{accent-color:var(--ink)}
 .mg .teebtn{border:0;background:var(--sunk);border-radius:11px}
-.mg .qbtn[aria-expanded="true"]{background:var(--ink);color:var(--volt)}
+.mg .qbtn[aria-expanded="true"]{background:var(--blk);color:var(--on-blk);border-color:var(--blk)}
 .mg .ruletip{border-left-color:var(--volt);box-shadow:inset 4px 0 0 var(--ink)}
 .mg :focus-visible{outline-color:var(--ink)}
 .mg .upd{background:var(--ink)}
-.mg .upd .btn.primary{background:var(--volt);color:var(--ink);border-color:var(--volt)}
+.mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 
 <div class="app">
-  <header class="top"><div class="top-in"><div class="brand">Mulligan<b>.</b></div><div class="row" style="flex-wrap:nowrap;gap:10px"><div class="round-meta" id="meta"></div><select class="themesel" id="themesel" aria-label="Tema de colores"><option value="mulligan">Mulligan</option><option value="sand">Arena y mar</option><option value="orig">Original claro</option><option value="orig-dark">Original oscuro</option><option value="apple">Apple claro</option><option value="apple-dark">Apple oscuro</option><option value="anthropic">Anthropic</option><option value="anthropic-green">Anthropic verde</option><option value="royal">Royal</option><option value="lux">Real Club</option></select></div></div></header>
+  <header class="top"><div class="top-in"><div class="brand">Mulligan<b>.</b></div><div class="row" style="flex-wrap:nowrap;gap:10px"><div class="round-meta" id="meta"></div><button type="button" class="icon-btn" data-a="themes" aria-label="Elegir tema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.3-.9.3-1.9 1.3-1.9H17a4 4 0 0 0 4-4c0-5.5-4-10.3-9-10.3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15.5" cy="7.5" r="1.2"/></svg><span class="sw"></span></button></div></div></header>
   <main id="app"></main>
+  <div id="sheet"></div>
   <nav class="tabs" aria-label="Secciones"><div class="tabs-in" id="tabs"></div></nav>
 </div>
 
@@ -961,6 +1001,7 @@ function vRounds(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.d
     ${ui.pendingDel===r.id?`<button class="btn small danger" data-a="delok" data-v="${r.id}">Confirmar borrado</button><button class="btn small" data-a="delno">Cancelar</button>`:`<button class="btn small" data-a="del" data-v="${r.id}">Borrar</button>`}</div></div>`});
   html+=`</div><div class="label" style="margin-top:8px">Copia de seguridad</div>
   <p class="note">Los datos se guardan solo en este navegador. Exportá de vez en cuando y guardá el texto en Notas o WhatsApp.</p>
+  <div class="row" style="justify-content:space-between"><span class="note">Versión ${VERSION.startsWith("__")?"local":VERSION}</span>${CANSHARE&&!VERSION.startsWith("__")?'<button class="btn small" data-a="chkupd">Buscar actualización</button>':""}</div>
   <div class="row"><button class="btn" data-a="exp">${ui.exp?"Ocultar":"Exportar"}</button><button class="btn" data-a="imp">${ui.imp?"Ocultar":"Importar"}</button></div>`;
   if(ui.exp)html+=`<textarea id="exp-text" readonly>${esc(JSON.stringify(S))}</textarea><button class="btn" data-a="copy" id="copy-btn">Copiar</button>`;
   if(ui.imp)html+=`<textarea id="imp-text" placeholder="Pegá acá el texto exportado"></textarea><div class="row"><button class="btn primary" data-a="impok">Importar y reemplazar</button><label class="btn" for="imp-file">Elegir archivo</label><input type="file" id="imp-file" accept=".json,.txt,application/json,text/plain" hidden></div>${ui.impErr?`<p class="err">${esc(ui.impErr)}</p>`:""}`;
@@ -1055,13 +1096,34 @@ function keepIncoming(copy){const r=ui.incoming;if(!r)return;r.me=ui.inMe;if(cop
   if(r.me!=null)S.meName=r.players[r.me];S.cur=r.id;S.statsP=r.me||0;S.view="games";ui.incoming=null;clearHash()}
 
 /* ---------- render y eventos ---------- */
-const THEMES=["mulligan","sand","orig","orig-dark","apple","apple-dark","anthropic","anthropic-green","royal","lux"];
-function applyTheme(){let t=S.theme==="dark"?"orig-dark":S.theme;if(!THEMES.includes(t))t="mulligan";S.theme=t;const el=document.documentElement;
-  THEMES.forEach(k=>el.classList.remove("t-"+k));el.classList.remove("app-dark");el.classList.add("t-"+t);el.classList.toggle("ios",t.startsWith("apple"));el.classList.toggle("mg",t==="mulligan");el.classList.toggle("ico",t.startsWith("apple")||t==="mulligan");el.classList.toggle("royal",t==="royal"||t==="lux");el.classList.toggle("lux",t==="lux");
-  const sel=document.getElementById("themesel");if(sel&&sel.value!==t)sel.value=t;
+const THEMES=["mulligan","mulligan-dark","sand-dark","anthropic-dark","anthropic-green-dark","sand","orig","orig-dark","apple","apple-dark","anthropic","anthropic-green","royal","lux"];
+// Cada tema tiene versión clara y, si la tiene, oscura. Vista previa: [fondo, bloque, acento, texto del bloque, letra]
+const SKINS=[
+ {id:"mulligan",dark:"mulligan-dark",nombre:"Mulligan",desc:"Tinta y flúor, pensado para leer al sol.",claro:["#f3f4ef","#0b130e","#d4ff3a","#ffffff",'"Barlow Condensed"'],oscuro:["#0b120d","#d4ff3a","#0b130e","#0b130e",'"Barlow Condensed"']},
+ {id:"sand",dark:"sand-dark",nombre:"Arena y mar",desc:"Arena cálida y verde mar.",claro:["#f5efe2","#0a6b7c","#f5efe2","#ffffff",'"Barlow Condensed"'],oscuro:["#0d1a1e","#3fb7c6","#0d1a1e","#04191c",'"Barlow Condensed"']},
+ {id:"orig",dark:"orig-dark",nombre:"Original",desc:"Verde cancha, simple.",claro:["#f3f5f2","#1c6a44","#d9eee1","#ffffff",'"Barlow Condensed"'],oscuro:["#0e1411","#4cbc83","#1d3a2b","#06170e",'"Barlow Condensed"']},
+ {id:"apple",dark:"apple-dark",nombre:"Apple",desc:"Como iOS: gris de sistema y tarjetas blancas.",claro:["#f2f2f7","#ffffff","#248a3d","#000000","-apple-system,system-ui,sans-serif"],oscuro:["#000000","#1c1c1e","#30d158","#ffffff","-apple-system,system-ui,sans-serif"]},
+ {id:"anthropic",dark:"anthropic-dark",nombre:"Anthropic",desc:"Crema, serif y terracota.",claro:["#f0eee6","#faf9f5","#c6613f","#141413",'"Source Serif 4",Georgia,serif'],oscuro:["#1f1e1d","#262624","#d97757","#f0eee6",'"Source Serif 4",Georgia,serif']},
+ {id:"anthropic-green",dark:"anthropic-green-dark",nombre:"Anthropic verde",desc:"Igual, con verde oliva.",claro:["#f0eee6","#faf9f5","#4f6a3a","#141413",'"Source Serif 4",Georgia,serif'],oscuro:["#1f1e1d","#262624","#8fae6f","#f0eee6",'"Source Serif 4",Georgia,serif']},
+ {id:"royal",dark:null,nombre:"Royal",desc:"Club tradicional: verde inglés y bronce.",claro:["#f3ead4","#12432f","#d9b65c","#f6e9c4",'"Playfair Display",Georgia,serif']},
+ {id:"lux",dark:null,nombre:"Real Club",desc:"Royal con ornamentos y bordó.",claro:["#f1e6cc","#0f3d2b","#6e1c22","#f6e9c4",'"Playfair Display",Georgia,serif']}];
+const sysDark=()=>{try{return matchMedia("(prefers-color-scheme: dark)").matches}catch(e){return false}};
+const skinOf=k=>SKINS.find(x=>x.id===k||x.dark===k);
+function applyTheme(){
+  if(!S.skin){const k=S.theme==="dark"?"orig-dark":S.theme,sk=skinOf(k);S.skin=sk?sk.id:"mulligan";S.mode=sk&&sk.dark===k?"oscuro":"claro"}
+  const sk=skinOf(S.skin)||SKINS[0],dark=S.mode==="oscuro"||(S.mode==="sistema"&&sysDark());
+  let t=dark&&sk.dark?sk.dark:sk.id;S.theme=t;const el=document.documentElement;
+  THEMES.forEach(k=>el.classList.remove("t-"+k));el.classList.remove("app-dark");el.classList.add("t-"+t);el.classList.toggle("ios",t.startsWith("apple"));el.classList.toggle("mg",t.startsWith("mulligan"));el.classList.toggle("ico",t.startsWith("apple")||t.startsWith("mulligan"));el.classList.toggle("royal",t==="royal"||t==="lux");el.classList.toggle("lux",t==="lux");
   const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.content=getVar("--bg");
   const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getVar("--bg")}
-function render(){applyTheme();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==="sistema"&&sysDark());
+  return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT"><div class="sheet-bg" data-a="thclose"></div><div class="sheet-p">
+  <div class="grab"></div><div class="row" style="justify-content:space-between"><h2 id="sheetT">Temas</h2><button class="btn small" data-a="thclose">Listo</button></div>
+  <div class="skins">${SKINS.map(k=>{const[bg,blk,ac,tx,ff]=dark&&k.oscuro?k.oscuro:k.claro;
+    return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
+  <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
+  <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
+function render(){applyTheme();document.getElementById("sheet").innerHTML=vSheet();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||(v==="setup"&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
   app.innerHTML=!r&&!["rounds","setup","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():vGames(r)}
@@ -1101,6 +1163,11 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"delno":ui.pendingDel=null;break;
    case"delok":S.rounds=S.rounds.filter(x=>x.id!==v);ui.pendingDel=null;
      if(!S.rounds.some(x=>x.id===S.cur))S.cur=S.rounds.length?S.rounds[0].id:null;break;
+   case"themes":ui.themes=true;break;
+   case"thclose":ui.themes=false;break;
+   case"skin":S.skin=v;vib(10);break;
+   case"mode":S.mode=v;break;
+   case"chkupd":checkUpdate();return;
    case"share":{const t=S.rounds.find(x=>x.id===v);if(t)shareRound(t,b);return}
    case"reload":location.reload();return;
    case"inme":ui.inMe=+v<0?null:+v;break;
@@ -1113,6 +1180,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      try{navigator.clipboard.writeText(t.value).then(done,()=>{t.select();b.textContent="Seleccionado: copialo"})}catch(err){t.select();b.textContent="Seleccionado: copialo"}return}
    case"impok":doImport(document.getElementById("imp-text").value);break;
    default:return}
+  if(["s","sset","pt","pen","fw","bk","go","wolf","bbb","grn"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
   save();render();if(scrollTop)window.scrollTo(0,0)}
 function doImport(txt){try{const j=JSON.parse(txt);if(!j||!Array.isArray(j.rounds)||!j.rounds.length||!j.rounds.every(r=>r.d&&r.players))throw 0;
   S=j;if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr=""}
@@ -1131,18 +1199,41 @@ function onSubmit(e){if(e.target.id!=="setup")return;e.preventDefault();readDraf
     S.view="games";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0);return}
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.tee=tee;r.tees=tees;r.me=meI;
   S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0)}
-function onChange(e){if(e.target.id==="themesel"){S.theme=e.target.value;save();render();return}
+function onChange(e){
   if(e.target.id==="histsel"){S.histRound=e.target.value||null;save();render();return}
   if(e.target.id==="su-holes"&&ui.draft){readDraft();render();return}
   if(e.target.id==="su-tee"&&ui.draft){readDraft();ui.draft.players.forEach(q=>q.tee=ui.draft.tee);render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
-function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();
+function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
+  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&ui.themes){ui.themes=false;render()}});
+  const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
+  try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.mode==="sistema")render()})}catch(e){}
   checkHash();window.addEventListener("hashchange",checkHash);
   // Instalable y sin conexión cuando se sirve desde el sitio (no dentro de Claude)
   if(CANSHARE&&"serviceWorker"in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){const had=!!navigator.serviceWorker.controller;
     navigator.serviceWorker.register("sw.js").then(reg=>document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})).catch(()=>{});
     // Cuando entra una versión nueva (no la primera instalación), se avisa y se recarga con un toque
     navigator.serviceWorker.addEventListener("controllerchange",()=>{if(had)showUpdate()})}}
+/* ---------- detalles del celular ---------- */
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+let toastT=null;
+function toast(msg){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),2600)}
+// Con una vuelta en juego la pantalla no se apaga sola
+let wake=null;
+async function keepAwake(){const r=R(),on=!!r&&!r.closed&&document.visibilityState==="visible";
+  try{if(on&&!wake&&"wakeLock"in navigator){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>{wake=null})}else if(!on&&wake){await wake.release();wake=null}}catch(e){wake=null}}
+// En la pantalla del hoyo, deslizar cambia de hoyo
+let touch0=null;
+function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;return}const t=e.touches[0];touch0={x:t.clientX,y:t.clientY}}
+function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
+  if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
+  r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
+// build.py reemplaza la marca por el número de versión del sitio
+const VERSION="2890896fcb";
+async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
+  if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
+  try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
+  toast(reg.installing||reg.waiting?"Bajando la versión nueva…":"Ya tenés la última versión")}
 function showUpdate(){if(document.getElementById("upd"))return;const el=document.createElement("div");el.id="upd";el.className="upd";el.setAttribute("role","status");
   el.innerHTML=`<span>Hay una versión nueva de la app</span><button class="btn small primary" data-a="reload">Actualizar</button>`;document.body.appendChild(el)}
 if(typeof document!=="undefined"&&document.getElementById("app"))init();
