@@ -551,6 +551,35 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* modo focus en el hoyo */
+.hh-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.focus-t{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 11px 4px 5px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.focus-t .sw{position:relative;width:26px;height:16px;border-radius:999px;background:var(--line);transition:background .15s}
+.focus-t .sw::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.focus-t[aria-pressed="true"]{color:var(--ink);border-color:var(--accent)}
+.focus-t[aria-pressed="true"] .sw{background:var(--accent)}
+.focus-t[aria-pressed="true"] .sw::after{transform:translateX(10px)}
+.mg .focus-t[aria-pressed="true"]{background:var(--blk);color:var(--on-blk2);border-color:var(--blk)}
+.mg .focus-t[aria-pressed="true"] .sw{background:var(--volt)}
+.mg .focus-t[aria-pressed="true"] .sw::after{background:var(--blk)}
+:root.t-mulligan-dark .focus-t[aria-pressed="true"] .sw{background:var(--on-blk)}
+:root.t-mulligan-dark .focus-t[aria-pressed="true"] .sw::after{background:var(--volt)}
+.royal .focus-t{border-radius:2px;font-family:var(--body);text-transform:none;letter-spacing:.02em;font-size:14px}
+.royal .focus-t .sw{border-radius:2px}.royal .focus-t .sw::after{border-radius:1px}
+.pcard.fc{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.fc-l{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.pcard.fc .step{flex:none}
+.fc-l .p-name{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* sin saltos de línea: así cada tarjeta mide lo mismo y los botones no se mueven de un hoyo a otro */
+.fc-sub{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap}
+.fc-sub .rel{flex:none}
+.fc-sub .p-tot{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-sub{height:24px;gap:6px}
+.mg .fc-sub .p-tot{padding:2px 8px;font-size:15px}
+/* en los celulares angostos el score achica un poco para que entre el total */
+@media (max-width:360px){.pcard.fc .step button{width:38px}.pcard.fc .step .val{min-width:50px}}
+.fc-sub .rel{font-size:15px}
+.fc-sub .note{margin:0;font-size:13px}
 /* marcador en vivo */
 .live{display:flex;flex-direction:column;gap:5px;width:100%;min-width:0;overflow:hidden;text-align:left;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:9px 12px;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .lv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;min-width:0;width:100%}
@@ -940,9 +969,9 @@ let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:""};
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r);
   let html=`<div class="stack">
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
-   <div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
+   <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Mostrar drive, putts, penalidades y bunker":"Dejar solo el score"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
    ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
-   <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div>
+   <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div></div>
   <div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`;
   html+=vLive(r);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
@@ -958,9 +987,11 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`).join("")}</div><p class="note">Cuenta si después hace par o mejor.</p></div>`}
   r.players.forEach((name,p)=>{const x=r.d[h][p],par=PP(r,p)[h];let tot=0,tp=0;L.forEach(hh=>{const v=sc(r,hh,p);if(v!=null){tot+=v;tp+=v-PP(r,p)[hh]}});
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
+    const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
+    if(S.focus){html+=`<div class="pcard fc"><div class="fc-l"><span class="p-name">${mixed?teeDot(c,teeK(r,p)):""}${esc(name)}</span><span class="fc-sub">${d==null?(tot?"":`<span class="note">sin cargar</span>`):`<span class="rel ${rc}">${relName(d)}</span>`}${tot?`<span class="p-tot">${tot} (${toPar(tp)})</span>`:""}</span></div>${step}</div>`;return}
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
     html+=`<div class="pcard"><div class="p-top"><span class="p-name">${esc(name)}${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</span><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
-    <div class="score-row"><div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>
+    <div class="score-row">${step}
     <div class="rel-col"><div class="rel-in"><span class="rel ${rc}">${d==null?'<span class="note">Tocá el número para poner par</span>':relName(d)}</span><span class="badges">${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</span></div></div></div>
     <div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div>
@@ -969,7 +1000,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
      </div></div>`});
   html+=`</fieldset>${c.id===BUILTIN.id?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>`:""}
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}">Hoyo ${L[k+1]+1} →</button>`}</div>
-  <p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p></div>`;
+  ${S.focus?"":`<p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p>`}</div>`;
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
 function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab}</td><td>${l.reduce((a,h)=>a+P(r)[h],0)}</td>${r.players.map((_,p)=>{const v=l.map(h=>sc(r,h,p)).filter(x=>x!=null);return`<td>${v.length?v.reduce((a,b)=>a+b,0):"–"}</td>`}).join("")}</tr>`;
@@ -1505,6 +1536,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"indrop":ui.incoming=null;ui.inCourse=null;clearHash();S.view=S.rounds.length?"games":"rounds";scrollTop=true;break;
    case"exp":ui.exp=!ui.exp;break;
    case"bkfile":backupFile();return
+   case"focus":S.focus=!S.focus;toast(S.focus?"Modo focus: solo el score":"Con drive, putts, penalidades y bunker");break;
    case"live":S.view="games";S.gamesMode="round";scrollTop=true;break;
    case"img":{const t=S.rounds.find(x=>x.id===v)||r;if(t)openImage(t);return}
    case"imgshare":{const m=ui.img;if(m)giveFile(m.blob,m.name,"Mulligan").then(ok=>{if(ok===null)toast("No se pudo compartir la imagen")});return}
@@ -1581,7 +1613,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="c6b01908d1";
+const VERSION="e6e2254f67";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
