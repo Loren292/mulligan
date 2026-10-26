@@ -229,6 +229,7 @@ details.rule p{font-size:14px;margin:6px 0 0;color:var(--muted)}
 textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid2>*{min-width:0}
+.upd{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:60;max-width:560px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 10px 10px 14px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 /* iOS Safari le da a la fecha su propio alto y un ancho mínimo: la igualamos a los selects */
 .field input[type=date]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;display:block;line-height:1.25;text-align:left}
 .field input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.25em}
@@ -812,6 +813,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"delok":S.rounds=S.rounds.filter(x=>x.id!==v);ui.pendingDel=null;
      if(!S.rounds.some(x=>x.id===S.cur))S.cur=S.rounds.length?S.rounds[0].id:null;break;
    case"share":{const t=S.rounds.find(x=>x.id===v);if(t)shareRound(t,b);return}
+   case"reload":location.reload();return;
    case"inme":ui.inMe=+v<0?null:+v;break;
    case"insave":keepIncoming(false);scrollTop=true;break;
    case"incopy":keepIncoming(true);scrollTop=true;break;
@@ -844,7 +846,12 @@ function onChange(e){if(e.target.id==="themesel"){S.theme=e.target.value;save();
 function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();
   checkHash();window.addEventListener("hashchange",checkHash);
   // Instalable y sin conexión cuando se sirve desde el sitio (no dentro de Claude)
-  if(CANSHARE&&"serviceWorker"in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))navigator.serviceWorker.register("sw.js").catch(()=>{})}
+  if(CANSHARE&&"serviceWorker"in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){const had=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register("sw.js").then(reg=>document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")reg.update().catch(()=>{})})).catch(()=>{});
+    // Cuando entra una versión nueva (no la primera instalación), se avisa y se recarga con un toque
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{if(had)showUpdate()})}}
+function showUpdate(){if(document.getElementById("upd"))return;const el=document.createElement("div");el.id="upd";el.className="upd";el.setAttribute("role","status");
+  el.innerHTML=`<span>Hay una versión nueva de la app</span><button class="btn small primary" data-a="reload">Actualizar</button>`;document.body.appendChild(el)}
 if(typeof document!=="undefined"&&document.getElementById("app"))init();
 </script>
 
