@@ -1036,13 +1036,21 @@ let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:""};
 
 /* ---------- vistas ---------- */
 /* ---------- lo que falta cargar ---------- */
-// El score de todos y, de quien venga anotando putts o drive en esta vuelta (vos siempre), eso también
-function pend(r,h){const out=[];r.players.forEach((n,p)=>{const x=r.d[h][p];
+// Datos que algún juego activo necesita de todos: Snake usa los putts; Garbage, putts, drive y bunker
+const gameOn=(r,k)=>!!r.games[k]&&okR(k,r);
+const needs=r=>({p:gameOn(r,"snake")||gameOn(r,"garbage"),fw:gameOn(r,"garbage")});
+// Lo de los juegos (lobo, greenie, Bingo Bango Bongo), el score de todos y, de quien venga anotando putts o drive
+// en esta vuelta (vos siempre, y todos si un juego lo necesita), eso también
+function pend(r,h){const out=[],nd=needs(r);
+  if(gameOn(r,"wolf")&&r.players.length===4&&r.wolf[h]==null)out.push([-1,"lo que eligió el lobo"]);
+  if(P(r)[h]===3&&(gameOn(r,"greenies")||gameOn(r,"garbage"))&&(r.grn||{})[h]==null)out.push([-1,"el greenie"]);
+  if(gameOn(r,"bbb")&&((r.bbb||{})[h]||[null,null,null]).some(x=>x==null))out.push([-1,"Bingo Bango Bongo"]);
+  r.players.forEach((n,p)=>{const x=r.d[h][p];
   if(x.s==null){out.push([p,"el score"]);return}
-  const tr=k=>p===r.me||hs(r).some(hh=>hh!==h&&r.d[hh][p][k]!=null);
+  const tr=k=>nd[k]||p===r.me||hs(r).some(hh=>hh!==h&&r.d[hh][p][k]!=null);
   if(x.p==null&&tr("p"))out.push([p,"los putts"]);
   if(PP(r,p)[h]>=4&&x.fw==null&&tr("fw"))out.push([p,"el drive"])});return out}
-const pendTxt=(r,l)=>l.map(([p,k])=>`${k} de ${nm(r,p)}`).join(", ");
+const pendTxt=(r,l)=>l.map(([p,k])=>p<0?k:`${k} de ${nm(r,p)}`).join(", ");
 // Al pasar de hoyo o cerrar la vuelta: si falta algo avisa una vez; el segundo intento pasa igual
 function pendGate(r,h){const k=r.id+":"+h;if(!pend(r,h).length||ui.warned===k){ui.warned=null;return true}ui.warned=k;return false}
 /* ---------- modo focus: la pantalla del hoyo para jugar ---------- */
@@ -1061,7 +1069,7 @@ function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0,u=c.unit==="yd"?"yd":"
    <div class="fh-foot"><span><b>${esc(nm(r,me))}</b> ${n?`${tot} <em>${toPar(tp)}</em> · ${n} ${n===1?"hoyo":"hoyos"}`:"sin hoyos todavía"}</span>${lv?`<button type="button" class="fh-live" data-a="live"><small>${esc(lv[0])}</small> ${esc(lv[1])}</button>`:""}</div>
   </section>`}
 // Quien no carga drive, penalidades ni bunker en esta vuelta los ve recién si los empieza a usar (vos, siempre)
-const fullCard=(r,p)=>p===r.me||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
+const fullCard=(r,p)=>p===r.me||needs(r).fw||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
   let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
@@ -1080,7 +1088,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="bbb" data-v="${i}" data-p="${p}" aria-pressed="${b[i]===p}">${esc(n)}</button>`).join("")}</div>`).join("")}</div>`}
   if(P(r)[h]===3&&(r.games.greenies&&okR("greenies",r)||r.games.garbage&&okR("garbage",r))){const g=r.grn&&r.grn[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span class="label">Greenie</span><span class="note">más cerca del hoyo desde la salida</span></div>
-    <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`).join("")}</div><p class="note">Cuenta si después hace par o mejor.</p></div>`}
+    <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`).join("")}<button class="chip" data-a="grn" data-p="-1" aria-pressed="${g===-1}">Nadie</button></div><p class="note">Cuenta si después hace par o mejor. Nadie: ninguno quedó en el green desde la salida.</p></div>`}
   if(S.focus){html+=`<div class="fcards${ui.dir>0?" sl":ui.dir<0?" sr":""}">`;ui.dir=0}
   r.players.forEach((name,p)=>{const x=r.d[h][p],par=PP(r,p)[h];let tot=0,tp=0;L.forEach(hh=>{const v=sc(r,hh,p);if(v!=null){tot+=v;tp+=v-PP(r,p)[hh]}});
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
@@ -1531,7 +1539,7 @@ function cleanShared(o){if(!o||o.v!==1)throw 0;
   const wolf={};if(o.wolf&&typeof o.wolf==="object")Object.entries(o.wolf).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(v==="lone"||v==="blind"||ok(v)))wolf[k]=v});
   const bbb={},grn={};
   if(o.bbb&&typeof o.bbb==="object")Object.entries(o.bbb).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&Array.isArray(v))bbb[k]=[0,1,2].map(i=>ok(v[i])?v[i]:null)});
-  if(o.grn&&typeof o.grn==="object")Object.entries(o.grn).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&ok(v))grn[k]=v});
+  if(o.grn&&typeof o.grn==="object")Object.entries(o.grn).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(ok(v)||v===-1))grn[k]=v});
   const tee=has(cc.tees,o.tee)?o.tee:defTee(cc);
   return[{bbb,grn,id:typeof o.id==="string"&&/^[\w-]{1,40}$/.test(o.id)?o.id:"r"+Date.now(),date:typeof o.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)?o.date:todayIso(),
     course:cc.id,tee,tees:players.map((_,i)=>Array.isArray(o.tees)&&has(cc.tees,o.tees[i])?o.tees[i]:tee),players,teams,start,n,games,d,wolf,cur:0,closed:o.closed===true},inc]}
@@ -1678,7 +1686,7 @@ function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();r
     r.d=Array.from({length:18},(_,h)=>d.players.map(p=>p.orig!=null&&old[h][p.orig]?old[h][p.orig]:{s:null,p:null,fw:null,pen:0,bk:false}));
     if(!(d.players.length===r.players.length&&d.players.every((p,i)=>p.orig===i))){const to=i=>{const j=d.players.findIndex(p=>p.orig===i);return j<0?null:j};
       r.wolf={};r.bbb=Object.fromEntries(Object.entries(r.bbb||{}).map(([h,v])=>[h,v.map(x=>x==null?null:to(x))]));
-      r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,to(v)]).filter(e=>e[1]!=null))}
+      r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,v===-1?-1:to(v)]).filter(e=>e[1]!=null))}
     Object.assign(r,{course,date:d.date||r.date,players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games,tee,tees,me:meI});r.cur=Math.min(r.cur,r.n-1);S.cur=r.id}
     S.view="games";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0);return}
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.course=course;r.tee=tee;r.tees=tees;r.me=meI;
@@ -1732,7 +1740,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="33b81a5276";
+const VERSION="727b47a863";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
