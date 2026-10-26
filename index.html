@@ -235,11 +235,27 @@ table.card tr.sub td{background:var(--sunk);font-family:var(--display);font-weig
 .g-lines span:last-child{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
 details.rule summary{font-size:13px;color:var(--muted);cursor:pointer}
 details.rule p{font-size:14px;margin:6px 0 0;color:var(--muted)}
+/* Gráficos: paleta de cada tema (jugadores --c1..--c8, parejas --ta y --tb, texto sobre las fichas --cin) */
+:root{--c1:#2a78d6;--c2:#1aa37a;--c3:#e0a412;--c4:#e8693a;--c5:#8a5cd6;--c6:#d44a8a;--c7:#2bb0c4;--c8:#7d8b2e;--ta:var(--blue);--tb:var(--red);--cin:#fff}
+:root.t-mulligan{--c1:#0b130e;--c2:#1b52cc;--c3:#dc2f1c;--c4:#0a7a3d;--c5:#b86200;--c6:#7b3fd1;--c7:#007f91;--c8:#7a6000;--ta:#0b130e;--tb:#dc2f1c;--cin:#fff}
+:root.t-mulligan-dark{--c1:#d4ff3a;--c2:#7aa2ff;--c3:#ff6b55;--c4:#3ddc7e;--c5:#ffb547;--c6:#b98cff;--c7:#4fd6e6;--c8:#eef2ea;--ta:#d4ff3a;--tb:#ff6b55;--cin:#0b130e}
+:root.t-sand{--c1:#0a6b7c;--c2:#c2452a;--c3:#2c5d9c;--c4:#8a6306;--c5:#467a2c;--c6:#8a4f9e;--c7:#a9581a;--c8:#46575c;--ta:#0a6b7c;--tb:#c2452a;--cin:#fff}
+:root.t-sand-dark{--c1:#3fb7c6;--c2:#ff7a5c;--c3:#79a6f0;--c4:#e2b43a;--c5:#8fd16a;--c6:#c792ea;--c7:#ffad5c;--c8:#cfdcdb;--ta:#3fb7c6;--tb:#ff7a5c;--cin:#0d1a1e}
+:root.t-orig{--c1:#1c6a44;--c2:#c13f29;--c3:#2b5fa8;--c4:#a97c08;--c5:#6b4fa0;--c6:#0f8c8c;--c7:#d9771f;--c8:#3d4a42;--ta:#1c6a44;--tb:#c13f29;--cin:#fff}
+:root.t-orig-dark{--c1:#4cbc83;--c2:#ff7d64;--c3:#7fa9ec;--c4:#e2b43a;--c5:#b58cf0;--c6:#3fd0d0;--c7:#ffaa55;--c8:#e6ede8;--ta:#4cbc83;--tb:#ff7d64;--cin:#0e1411}
+:root.t-apple{--c1:#007aff;--c2:#e0302a;--c3:#248a3d;--c4:#c25e00;--c5:#8944ab;--c6:#0071a4;--c7:#d30f45;--c8:#6e6e73;--ta:#007aff;--tb:#ff3b30;--cin:#fff}
+:root.t-apple-dark{--c1:#0a84ff;--c2:#ff453a;--c3:#30d158;--c4:#ff9f0a;--c5:#bf5af2;--c6:#64d2ff;--c7:#ff375f;--c8:#98989d;--ta:#0a84ff;--tb:#ff453a;--cin:#000}
+:root.t-anthropic{--c1:#c6613f;--c2:#3b64a0;--c3:#4f6a3a;--c4:#9a6c00;--c5:#6a4c93;--c6:#2f7f86;--c7:#8f8a7a;--c8:#141413;--ta:#c6613f;--tb:#3b64a0;--cin:#fff}
+:root.t-anthropic-green{--c1:#4f6a3a;--c2:#c6613f;--c3:#3b64a0;--c4:#9a6c00;--c5:#6a4c93;--c6:#2f7f86;--c7:#8f8a7a;--c8:#141413;--ta:#4f6a3a;--tb:#c6613f;--cin:#fff}
+:root.t-anthropic-dark{--c1:#d97757;--c2:#7fa2d9;--c3:#8fae6f;--c4:#d4a440;--c5:#a58bd1;--c6:#5fb3ba;--c7:#c9c5b8;--c8:#f0eee6;--ta:#d97757;--tb:#7fa2d9;--cin:#1f1e1d}
+:root.t-anthropic-green-dark{--c1:#8fae6f;--c2:#d97757;--c3:#7fa2d9;--c4:#d4a440;--c5:#a58bd1;--c6:#5fb3ba;--c7:#c9c5b8;--c8:#f0eee6;--ta:#8fae6f;--tb:#d97757;--cin:#1f1e1d}
+:root.t-royal{--c1:#12432f;--c2:#8c2a1c;--c3:#1f3a6a;--c4:#a07a22;--c5:#5b3a6e;--c6:#2f6b5e;--c7:#8a6a3a;--c8:#1b2a21;--ta:#12432f;--tb:#8c2a1c;--cin:#f6e9c4}
+:root.t-lux{--c1:#0f3d2b;--c2:#6e1c22;--c3:#1f3a6a;--c4:#9a7420;--c5:#5b3a6e;--c6:#2f6b5e;--c7:#8a6a3a;--c8:#1a271f;--ta:#0f3d2b;--tb:#6e1c22;--cin:#f6e9c4}
 .chartwrap{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .chartwrap:empty{display:none}
 .chart{width:100%;height:auto;display:block;overflow:visible}
 .chart text{fill:var(--muted);font-size:10px;font-family:var(--body,inherit);font-variant-numeric:tabular-nums}
-.chart text.in{fill:#fff;font-weight:700;font-size:11px}
+.chart text.in{fill:var(--cin);font-weight:700;font-size:11px}
 .chart .grid{stroke:var(--line);stroke-width:1}
 .chart .sep{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3;opacity:.6}
 .chart .zero{fill:var(--muted);opacity:.5}
@@ -739,7 +755,7 @@ const GFN={rr:gRR,stab2:gPH("stab2"),nines:gPH("nines"),acey:gPH("acey"),chairma
  medal:gMedal,fourball:gFourball,nassau:gNassau,skins:gSkins,sixes:gSixes,vegas:gVegas,wolf:gWolf,rabbit:gRabbit,snake:gSnake,bba:gBBA,stableford:gStableford};
 
 /* ---------- gráficos ---------- */
-const PC=["#2a78d6","#1aa37a","#e0a412","#e8693a","#8a5cd6","#d44a8a","#2bb0c4","#7d8b2e"],PD=["","6 4","2 3","9 4 2 4","4 2","1 3","12 4","6 2 2 2"];
+const pc=i=>getVar("--c"+(i%8+1)),PD=["","6 4","2 3","9 4 2 4","4 2","1 3","12 4","6 2 2 2"];
 const CW=360,CHT=210,CL=30,CR=8,CT=8,CB=32;
 function niceTicks(lo,hi,max,minSt){const raw=Math.max(1e-9,hi-lo)/max,mag=Math.pow(10,Math.floor(Math.log10(raw)));
   const st=Math.max(minSt||0,[1,2,5,10].map(x=>x*mag).find(x=>x>=raw-1e-9));const t=[];
@@ -761,20 +777,20 @@ function chLines(xl,ser,label,minSt,o={}){const all=ser.flatMap(s=>s.v).filter(v
     return(s.dots?"":`<polyline fill="none" stroke="${s.c}" stroke-width="2.2" stroke-dasharray="${s.d}" stroke-linejoin="round" points="${pts.map(p=>p.join(",")).join(" ")}"/>`)+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="${s.dots?2.2:2.6}" fill="${s.c}"/>`).join("")}).join(""),label,null,o.xt)}
 // v: ventaja acumulada por hoyo (positiva = la primera pareja)
 function chBars(xl,v,na,nb,label,seps){if(!v.length)return"";const m=Math.max(1,...v.map(Math.abs)),t=niceTicks(-m,m,6,1);
-  return legBox([[na,"var(--blue)"],[nb,"var(--red)"]])+chartBox(xl,t,(X,Y,bw)=>{const z=Y(0),wd=Math.min(bw*.68,22);
-    return v.map((x,i)=>x===0?`<rect class="zero" x="${X(i)-wd/2}" y="${z-1}" width="${wd}" height="2" rx="1"/>`:`<rect x="${X(i)-wd/2}" y="${Math.min(Y(x),z)}" width="${wd}" height="${Math.abs(Y(x)-z)}" rx="3" style="fill:var(${x>0?"--blue":"--red"})"/>`).join("")},label,seps)}
+  return legBox([[na,"var(--ta)"],[nb,"var(--tb)"]])+chartBox(xl,t,(X,Y,bw)=>{const z=Y(0),wd=Math.min(bw*.68,22);
+    return v.map((x,i)=>x===0?`<rect class="zero" x="${X(i)-wd/2}" y="${z-1}" width="${wd}" height="2" rx="1"/>`:`<rect x="${X(i)-wd/2}" y="${Math.min(Y(x),z)}" width="${wd}" height="${Math.abs(Y(x)-z)}" rx="3" style="fill:var(${x>0?"--ta":"--tb"})"/>`).join("")},label,seps)}
 // hold: quién tiene la ficha después de cada hoyo (índice de jugador o null)
 function chStrip(r,xl,hold,label,seps){if(!xl.length)return"";const w=CW-CL-CR,bw=w/xl.length;
   let s=`<svg class="chart" viewBox="0 0 ${CW} 46" role="img" aria-label="${esc(label)}">`;
   (seps||[]).forEach(i=>s+=`<line class="sep" x1="${CL+i*bw}" x2="${CL+i*bw}" y1="1" y2="29"/>`);
-  hold.forEach((p,i)=>{const x=CL+i*bw;s+=`<rect x="${x+1.5}" y="4" width="${bw-3}" height="22" rx="3" ${p==null?'class="empty"':`style="fill:${PC[p%8]}"`}/>`+(p==null?"":`<text class="in" x="${x+bw/2}" y="19" text-anchor="middle">${esc(nm(r,p).charAt(0).toUpperCase())}</text>`)+`<text x="${x+bw/2}" y="41" text-anchor="middle">${xl[i]}</text>`});
+  hold.forEach((p,i)=>{const x=CL+i*bw;s+=`<rect x="${x+1.5}" y="4" width="${bw-3}" height="22" rx="3" ${p==null?'class="empty"':`style="fill:var(--c${p%8+1})"`}/>`+(p==null?"":`<text class="in" x="${x+bw/2}" y="19" text-anchor="middle">${esc(nm(r,p).charAt(0).toUpperCase())}</text>`)+`<text x="${x+bw/2}" y="41" text-anchor="middle">${xl[i]}</text>`});
   const who=[...new Set(hold.filter(p=>p!=null))];
-  return(who.length?legBox(who.map(p=>[nm(r,p),PC[p%8]])):"")+s+`<text x="${CL-5}" y="41" text-anchor="end">Hoyo</text></svg>`}
+  return(who.length?legBox(who.map(p=>[nm(r,p),`var(--c${p%8+1})`])):"")+s+`<text x="${CL-5}" y="41" text-anchor="end">Hoyo</text></svg>`}
 const doneH=r=>{const o=[];for(const h of hs(r)){if(!comp(r,h))break;o.push(h)}return o};
 const hl=l=>l.map(h=>h+1);
 function cumMatch(l,fa,fb){let st=0;return l.map(h=>{const a=fa(h),b=fb(h);if(a<b)st++;else if(b<a)st--;return st})}
 function playerSer(r,l,step,fmt,desc){return ids(r).map(p=>{let c=0;const v=l.map(h=>{const x=step(h,p);if(x==null)return null;c+=x;return c});
-  const last=[...v].reverse().find(x=>x!=null);return{p,v,last,n:nm(r,p)+(last==null?"":" "+fmt(last)),c:PC[p%8],d:PD[p%8]}}).filter(s=>s.last!=null).sort((a,b)=>desc?b.last-a.last:a.last-b.last)}
+  const last=[...v].reverse().find(x=>x!=null);return{p,v,last,n:nm(r,p)+(last==null?"":" "+fmt(last)),c:pc(p),d:PD[p%8]}}).filter(s=>s.last!=null).sort((a,b)=>desc?b.last-a.last:a.last-b.last)}
 function chToPar(r){const L=hs(r);let k=-1;L.forEach((h,i)=>{if(r.d[h].some(x=>x.s!=null))k=i});if(k<0)return"";const l=L.slice(0,k+1);
   return chLines(hl(l),playerSer(r,l,(h,p)=>{const s=sc(r,h,p);return s==null?null:s-PP(r,p)[h]},toPar),"Golpes sobre el par acumulados, hoyo a hoyo")}
 function chFourball(r){const[A,B]=r.teams,l=doneH(r);return chBars(hl(l),cumMatch(l,h=>best(r,h,A),h=>best(r,h,B)),"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Estado del partido hoyo a hoyo")}
@@ -1273,7 +1289,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="35e35ee67b";
+const VERSION="f366bb5800";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
