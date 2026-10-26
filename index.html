@@ -151,9 +151,11 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .step.sm .val{min-width:34px;height:36px;font-size:20px}
 .rel{font-family:var(--display);font-weight:600;font-size:18px;text-transform:uppercase;letter-spacing:.04em}
 .rel.under{color:var(--red)} .rel.par{color:var(--accent)} .rel.over{color:var(--muted)}
-.extras{display:grid;grid-template-columns:auto auto 1fr;gap:10px 12px;align-items:end}
+/* Drive arriba; abajo Putts a la izquierda y Penal. + Bunker contra el margen derecho */
+.extras{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px 10px;align-items:end}
 .extras .ex:first-child{grid-column:1/-1}
-.extras .chip.bk{justify-self:start}
+.extras .ex:nth-child(3){grid-column:3}
+.extras .chip.bk{grid-column:4}
 .ex{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .ex .seg button{min-width:42px}
 .seg.na{position:relative;opacity:.55}
@@ -828,7 +830,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
      </div></div>`});
   html+=`</fieldset><details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}">Hoyo ${L[k+1]+1} →</button>`}</div>
-  <p class="note">El GIR se calcula solo con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p></div>`;
+  <p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p></div>`;
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
 function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab}</td><td>${l.reduce((a,h)=>a+P(r)[h],0)}</td>${r.players.map((_,p)=>{const v=l.map(h=>sc(r,h,p)).filter(x=>x!=null);return`<td>${v.length?v.reduce((a,b)=>a+b,0):"–"}</td>`}).join("")}</tr>`;
