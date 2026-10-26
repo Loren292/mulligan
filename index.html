@@ -603,16 +603,17 @@ function gBBA(r){const[A,B]=r.teams;let a=0,b=0,n=0;
 function stbl(s,par){return Math.max(0,2-(s-par))}
 function gStableford(r){const t=ids(r).map(p=>{let s=0;hs(r).forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return{p,s}}).sort((a,b)=>b.s-a.s);
   return{res:t[0].s?`Lidera ${t.filter(x=>x.s===t[0].s).map(x=>nm(r,x.p)).join(" y ")} con ${t[0].s}`:"Sin puntos todavía",lines:t.map(x=>[nm(r,x.p),x.s+" pts"])}}
+// Si el juego se puede jugar con n jugadores y equipos de a y b; si no, el motivo
 function gameOk(k,n,a,b){
-  if(k==="skins"||k==="rabbit")return n>=2?"":"necesita 2 o más";
-  if(k==="fourball"||k==="nassau"||k==="bba")return a>=1&&b>=1?"":"necesita 2 equipos";
-  if(k==="vegas")return a===2&&b===2?"":"necesita 2 parejas";
   if(k==="wolf"||k==="sixes")return n===4?"":"necesita 4 jugadores";
-  if(k==="lowhigh"||k==="scotch")return a===2&&b===2?"":"necesita 2 parejas";
   if(k==="nines")return n===3?"":"necesita 3 jugadores";
+  if(k==="vegas")return a===2&&b===2?"":"necesita 2 parejas";
   if(k==="rr"||k==="acey")return n>=3?"":"necesita 3 o más";
-  if(k==="chairman"||k==="fidget"||k==="greenies"||k==="bbb")return n>=2?"":"necesita 2 o más";
-  return""}
+  // Mejor pelota: equipos del mismo tamaño (1 contra 1 es match play individual)
+  if(k==="fourball"||k==="nassau")return a&&b?(a===b?"":"necesita equipos del mismo tamaño"):"necesita 2 equipos";
+  // Suman o comparan los dos scores de cada equipo: hacen falta parejas (o equipos iguales más grandes)
+  if(k==="bba"||k==="lowhigh"||k==="scotch")return a>=2&&a===b?"":"necesita 2 parejas o equipos iguales";
+  return n>=2?"":"necesita 2 o más"}
 const okR=(k,r)=>!gameOk(k,r.players.length,r.teams[0].length,r.teams[1].length);
 /* ---------- juegos nuevos ---------- */
 // Puntos por hoyo para cada jugador: f(r,h,st) devuelve un número por jugador (null = ese hoyo no cuenta); st guarda estado entre hoyos
