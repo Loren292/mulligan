@@ -551,6 +551,15 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* orden de los jugadores */
+.grip{flex:none;display:grid;place-items:center;width:18px;height:44px;margin:0 -2px 0 -4px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
+.grip:active{cursor:grabbing}
+.prow{transition:transform .15s ease}
+.prow.dragging{transition:none;position:relative;z-index:5;background:var(--bg);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.prow.dragging .grip{color:var(--ink)}
+.prow.mix{animation:mixin .35s ease both;animation-delay:calc(var(--i)*45ms)}
+@keyframes mixin{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.btn.dice{display:inline-flex;align-items:center;justify-content:center;gap:8px}
 /* modo focus en el hoyo */
 .hh-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .focus-t{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 11px 4px 5px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -1303,6 +1312,21 @@ function readDraft(){const d=ui.draft;if(!d||!document.getElementById("setup"))r
   const v=id=>document.getElementById(id);d.date=v("su-date").value;d.tee=v("su-tee").value;d.holes=v("su-holes").value;
   d.players.forEach((p,i)=>{p.name=v("su-p"+i).value});GAMES.forEach(([k])=>{const c=v("su-g-"+k);if(c&&!c.disabled)d.games[k]=c.checked})}
 const MAXP=8;
+/* ---------- orden y equipos ---------- */
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+// Orden al azar y, aparte, equipos al azar de igual tamaño (con impares, A tiene uno más)
+function shufflePlayers(d){d.players=shuf(d.players);const a=new Set(shuf(d.players).slice(0,Math.ceil(d.players.length/2)));d.players.forEach(p=>p.team=a.has(p)?"A":"B")}
+function movePlayer(i,t){const d=ui.draft;if(!d||t===i||t<0||t>=d.players.length)return;readDraft();const[p]=d.players.splice(i,1);d.players.splice(t,0,p);vib(10);render()}
+// Arrastrar la manija: la fila sigue al dedo y las demás se corren para hacerle lugar
+let drag=null;
+function onGripDown(e){const g=e.target.closest&&e.target.closest(".grip");if(!g||e.button>0)return;e.preventDefault();
+  const rows=[...document.querySelectorAll(".plist>.prow")],i=+g.dataset.v,row=rows[i];if(!row)return;
+  const pitch=rows.length>1?rows[1].getBoundingClientRect().top-rows[0].getBoundingClientRect().top:row.offsetHeight;
+  drag={i,t:i,y0:e.clientY,rows,row,pitch,id:e.pointerId};row.classList.add("dragging");try{g.setPointerCapture(e.pointerId)}catch(x){}}
+function onGripMove(e){if(!drag||e.pointerId!==drag.id)return;const{i,rows,row,pitch}=drag,dy=e.clientY-drag.y0;
+  const t=Math.max(0,Math.min(rows.length-1,i+Math.round(dy/pitch)));if(t!==drag.t){drag.t=t;vib(6)}
+  row.style.transform=`translateY(${dy}px)`;rows.forEach((x,j)=>{if(j===i)return;x.style.transform=i<j&&j<=t?`translateY(${-pitch}px)`:t<=j&&j<i?`translateY(${pitch}px)`:""})}
+function onGripUp(e){if(!drag||e.pointerId!==drag.id)return;const{i,t,rows}=drag;drag=null;rows.forEach(x=>{x.style.transform="";x.classList.remove("dragging")});if(t!==i)movePlayer(i,t)}
 function vSetup(){if(!ui.draft)ui.draft=makeDraft();const d=ui.draft,n=d.players.length,c=draftC(d);
   const A=d.players.filter(p=>p.team==="A").length,B=n-A;
   return`<form id="setup" class="stack" novalidate><div class="row" style="justify-content:space-between"><h2>${d.edit?"Editar vuelta":"Nueva vuelta"}</h2><button type="button" class="btn small" data-a="tab" data-v="rounds">Cancelar</button></div>
@@ -1312,15 +1336,15 @@ function vSetup(){if(!ui.draft)ui.draft=makeDraft();const d=ui.draft,n=d.players
   <div class="grid2"><div class="field"><label class="label" for="su-date">Fecha</label><input type="date" id="su-date" value="${esc(d.date)}"></div>
   <div class="field"><label class="label" for="su-holes">Hoyos</label><select id="su-holes">${[["18","18 hoyos"],["front","Ida (1–9)"],["back","Vuelta (10–18)"]].map(([k,t])=>`<option value="${k}" ${d.holes===k?"selected":""}>${t}</option>`).join("")}</select></div></div>
   <div class="row" style="justify-content:space-between"><span class="label">Jugadores (${n})</span><span class="note">Equipo · Salida · Yo</span></div>
-  <div class="stack" style="gap:8px">${d.players.map((p,i)=>`<div class="prow"><input id="su-p${i}" value="${esc(p.name)}" placeholder="Jugador ${i+1}" autocomplete="off" aria-label="Nombre del jugador ${i+1}">
+  <div class="stack plist" style="gap:8px">${d.players.map((p,i)=>`<div class="prow${ui.mixed?" mix":""}" style="--i:${i}">${n>1?`<button type="button" class="grip" data-v="${i}" aria-label="Mover a ${esc(p.name||"el jugador "+(i+1))}: arrastrá, o usá las flechas"><svg viewBox="0 0 10 16" width="10" height="16" aria-hidden="true"><g fill="currentColor"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="2" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="2" cy="14" r="1.6"/><circle cx="8" cy="14" r="1.6"/></g></svg></button>`:""}<input id="su-p${i}" value="${esc(p.name)}" placeholder="Jugador ${i+1}" autocomplete="off" aria-label="Nombre del jugador ${i+1}">
    <div class="seg" role="group" aria-label="Equipo de ${esc(p.name||"jugador "+(i+1))}"><button type="button" data-a="team" data-v="${i}" data-t="A" aria-pressed="${p.team==="A"}">A</button><button type="button" data-a="team" data-v="${i}" data-t="B" aria-pressed="${p.team==="B"}">B</button></div>
    <button type="button" class="teebtn" data-a="ptee" data-v="${i}" aria-label="Salida de ${esc(p.name||"el jugador "+(i+1))}: ${esc((c.tees[p.tee||d.tee]||{}).name||"")}. Tocá para cambiarla">${teeDot(c,p.tee||d.tee)}</button>
    <div class="seg"><button type="button" data-a="pme" data-v="${i}" aria-pressed="${!!p.me}" aria-label="Soy ${esc(p.name||"el jugador "+(i+1))}">Yo</button></div>
    <button type="button" class="btn small" data-a="pdel" data-v="${i}" ${n<=1?"disabled":""} aria-label="Quitar jugador ${i+1}">✕</button></div>`).join("")}</div>
-  ${n<MAXP?`<button type="button" class="btn" data-a="padd">+ Agregar jugador</button>`:`<p class="note">Máximo ${MAXP} jugadores.</p>`}
+  <div class="row${n>1&&n<MAXP?" two":""}">${n<MAXP?`<button type="button" class="btn" data-a="padd">+ Agregar jugador</button>`:""}${n>1?`<button type="button" class="btn dice" data-a="shuffle" aria-label="Sortear el orden y los equipos"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2" y="2" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><g fill="currentColor"><circle cx="6.5" cy="6.5" r="1.6"/><circle cx="13.5" cy="6.5" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="6.5" cy="13.5" r="1.6"/><circle cx="13.5" cy="13.5" r="1.6"/></g></svg>Sortear</button>`:""}</div>${n>=MAXP?`<p class="note">Máximo ${MAXP} jugadores.</p>`:""}
   <div class="label">Juegos</div><div class="checks">${GAMES.map(([k,t,rule])=>{const why=gameOk(k,n,A,B,d.holes==="18"?18:9);return`${GGROUP[k]?`<div class="ghead">${GGROUP[k]}</div>`:""}<label class="check${why?" off":""}"><input type="checkbox" id="su-g-${k}" ${!why&&d.games[k]?"checked":""} ${why?"disabled":""}><span>${t}${why?`<br><small class="muted">${why}</small>`:""}</span><button type="button" class="qbtn" data-a="rule" data-v="${k}" aria-expanded="${ui.rule===k}" aria-label="Cómo se juega ${t}">?</button></label>${ui.rule===k?`<p class="ruletip"><b>${t}.</b> ${rule}</p>`:""}`}).join("")}</div>
   <p class="note">El círculo de color es la salida de cada uno: tocalo para cambiarla. Cada jugador se compara con el par de su salida.</p>
-  <p class="note">Four-ball y los juegos por parejas necesitan equipos del mismo tamaño. Para un mano a mano, Match play individual o Nassau. Wolf y Sixes arman las parejas según el orden de los jugadores.</p>
+  <p class="note">Four-ball y los juegos por parejas necesitan equipos del mismo tamaño. Para un mano a mano, Match play individual o Nassau. Wolf y Sixes arman las parejas según el orden de los jugadores: para cambiarlo, arrastrá la manija de la izquierda o tocá Sortear.</p>
   ${ui.setupErr?`<p class="err">${esc(ui.setupErr)}</p>`:""}
   ${d.edit?'<p class="note">Si quitás un jugador se borran sus scores de esta vuelta.</p>':""}<button class="btn primary" type="submit">${d.edit?"Guardar cambios":"Empezar vuelta"}</button></form>`}
 
@@ -1514,6 +1538,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");askPersist();ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
    case"reopen":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=false;break}
    case"padd":readDraft();if(ui.draft.players.length<MAXP){const A=ui.draft.players.filter(p=>p.team==="A").length;ui.draft.players.push({name:"",team:A>ui.draft.players.length-A?"B":"A",tee:ui.draft.tee})}break;
+   case"shuffle":{readDraft();shufflePlayers(ui.draft);ui.mixed=true;setTimeout(()=>{ui.mixed=false},500);vib([12,30,12]);toast("Orden y equipos sorteados");break}
    case"pdel":readDraft();if(ui.draft.players.length>1)ui.draft.players.splice(+v,1);break;
    case"ptee":{readDraft();const ks=Object.keys(draftC(ui.draft).tees),q=ui.draft.players[+v];q.tee=ks[(ks.indexOf(q.tee||ui.draft.tee)+1)%ks.length];break}
    case"pme":{readDraft();const was=ui.draft.players[+v].me;ui.draft.players.forEach(q=>q.me=false);ui.draft.players[+v].me=!was;break}
@@ -1562,7 +1587,9 @@ function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();r
   const games={};GAMES.forEach(([k])=>games[k]=!!d.games[k]&&!gameOk(k,players.length,A.length,B.length,d.holes==="18"?18:9));
   if(d.edit){const r=S.rounds.find(x=>x.id===d.edit);if(r){const old=r.d;
     r.d=Array.from({length:18},(_,h)=>d.players.map(p=>p.orig!=null&&old[h][p.orig]?old[h][p.orig]:{s:null,p:null,fw:null,pen:0,bk:false}));
-    if(!(d.players.length===r.players.length&&d.players.every((p,i)=>p.orig===i))){r.wolf={};r.bbb={};r.grn={}}
+    if(!(d.players.length===r.players.length&&d.players.every((p,i)=>p.orig===i))){const to=i=>{const j=d.players.findIndex(p=>p.orig===i);return j<0?null:j};
+      r.wolf={};r.bbb=Object.fromEntries(Object.entries(r.bbb||{}).map(([h,v])=>[h,v.map(x=>x==null?null:to(x))]));
+      r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,to(v)]).filter(e=>e[1]!=null))}
     Object.assign(r,{course,date:d.date||r.date,players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games,tee,tees,me:meI});r.cur=Math.min(r.cur,r.n-1);S.cur=r.id}
     S.view="games";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0);return}
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.course=course;r.tee=tee;r.tees=tees;r.me=meI;
@@ -1578,8 +1605,10 @@ function onChange(e){
     if(t.own&&!t.par.length){t.par=d.par.slice();t.si=d.si.slice()}render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
 function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
-  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img)){ui.themes=false;closeImg();render()}cKey(e)});
-  document.addEventListener("input",cInput);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
+  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img)){ui.themes=false;closeImg();render()}
+    if((e.key==="ArrowUp"||e.key==="ArrowDown")&&e.target.classList&&e.target.classList.contains("grip")){e.preventDefault();const i=+e.target.dataset.v,t=i+(e.key==="ArrowUp"?-1:1);movePlayer(i,t);const g=document.querySelector(`.grip[data-v="${t}"]`);if(g)g.focus()}cKey(e)});
+  document.addEventListener("input",cInput);
+  document.addEventListener("pointerdown",onGripDown);document.addEventListener("pointermove",onGripMove);document.addEventListener("pointerup",onGripUp);document.addEventListener("pointercancel",onGripUp);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
   const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.mode==="sistema")render()})}catch(e){}
   checkHash();window.addEventListener("hashchange",checkHash);askPersist();
@@ -1613,7 +1642,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="e6e2254f67";
+const VERSION="711c2b65c0";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
