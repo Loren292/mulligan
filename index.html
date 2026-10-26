@@ -151,8 +151,20 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .step.sm .val{min-width:34px;height:36px;font-size:20px}
 .rel{font-family:var(--display);font-weight:600;font-size:18px;text-transform:uppercase;letter-spacing:.04em}
 .rel.under{color:var(--red)} .rel.par{color:var(--accent)} .rel.over{color:var(--muted)}
-.extras{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
-.ex{display:flex;align-items:center;gap:6px}
+.extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.ex{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.ex .seg button{min-width:42px}
+.seg.na{position:relative;opacity:.55}
+.seg.na button{visibility:hidden}
+.seg.na::after{content:"Par 3";position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:600;color:var(--muted)}
+.score-row .step{flex:none}
+/* El alto de la fila lo marca el contador: el resultado y las etiquetas no empujan nada */
+.rel-col{position:relative;align-self:stretch;min-width:0;flex:1}
+.rel-in{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.badges .badge{white-space:nowrap}
+.rel-col .rel{line-height:1.1}
+.badges{display:flex;gap:6px}
+.badges:empty{display:none}
 .ex .label{font-size:11px}
 .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{border:0;background:var(--surface);padding:0 10px;height:36px;font-weight:600;font-size:14px;min-width:38px}
@@ -806,12 +818,12 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
     html+=`<div class="pcard"><div class="p-top"><span class="p-name">${esc(name)}${mixed?`<span class="p-tee">${teeDot(teeK(r,p))}${TEEP(r,p).name} · ${yd(TEEP(r,p).m[h])} yd${PP(r,p)[h]!==COURSE.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</span><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
     <div class="score-row"><div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>
-    <span class="rel ${rc}">${d==null?'<span class="note">Tocá el número para poner par</span>':relName(d)}</span></div>
-    <div class="extras">${par>=4?`<div class="ex"><span class="label">Drive</span><div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div></div>`:""}
+    <div class="rel-col"><div class="rel-in"><span class="rel ${rc}">${d==null?'<span class="note">Tocá el número para poner par</span>':relName(d)}</span><span class="badges">${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</span></div></div></div>
+    <div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
+     <div class="ex"><span class="label">Bunker</span><div class="seg"><button data-a="bk" data-p="${p}" aria-pressed="${x.bk}" aria-label="Estuvo en bunker">${x.bk?"Sí":"No"}</button></div></div>
      <div class="ex"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
-     <button class="chip" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
-     ${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div></div>`});
+     </div></div>`});
   html+=`</fieldset><details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}">Hoyo ${L[k+1]+1} →</button>`}</div>
   <p class="note">El GIR se calcula solo con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p></div>`;
