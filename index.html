@@ -551,6 +551,15 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* lo que falta cargar */
+.ex.pend .label{color:var(--red)}
+.ex.pend .step,.ex.pend .seg{outline:2px dashed var(--red);outline-offset:2px}
+.strip button.falta::after{content:"";position:absolute;top:3px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--red)}
+.pendbox{display:flex;flex-direction:column;gap:2px;border:1.5px dashed var(--red);border-radius:12px;padding:10px 12px;font-size:14px}
+.pendbox b{color:var(--red);font-weight:700}
+.pendbox span{color:var(--muted);font-size:13px}
+.royal .pendbox{border-radius:2px}
+.btn .pc{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:8px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:700;line-height:1;vertical-align:1px}
 /* fila del score con los putts al costado; abajo drive, penalidades y bunker en una sola fila */
 .score-row{justify-content:space-between;gap:8px}
 .score-row .pt-ex{flex:none;align-items:center}
@@ -978,13 +987,23 @@ const R=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
 let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:""};
 
 /* ---------- vistas ---------- */
-function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r);
+/* ---------- lo que falta cargar ---------- */
+// El score de todos y, de quien venga anotando putts o drive en esta vuelta (vos siempre), eso también
+function pend(r,h){const out=[];r.players.forEach((n,p)=>{const x=r.d[h][p];
+  if(x.s==null){out.push([p,"el score"]);return}
+  const tr=k=>p===r.me||hs(r).some(hh=>hh!==h&&r.d[hh][p][k]!=null);
+  if(x.p==null&&tr("p"))out.push([p,"los putts"]);
+  if(PP(r,p)[h]>=4&&x.fw==null&&tr("fw"))out.push([p,"el drive"])});return out}
+const pendTxt=(r,l)=>l.map(([p,k])=>`${k} de ${nm(r,p)}`).join(", ");
+// Al pasar de hoyo o cerrar la vuelta: si falta algo avisa una vez; el segundo intento pasa igual
+function pendGate(r,h){const k=r.id+":"+h;if(!pend(r,h).length||ui.warned===k){ui.warned=null;return true}ui.warned=k;return false}
+function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
   let html=`<div class="stack">
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
    <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Mostrar el marcador en vivo, la grilla de hoyos y el mapa":"Esconder el marcador en vivo, la grilla de hoyos y el mapa"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
    ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
    <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div></div>
-  ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
+  ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
   if(r.games.wolf&&r.players.length===4){const w=k%4,dec=r.wolf[h];
@@ -1004,13 +1023,14 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
     html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
     <div class="score-row">${step}
-    <div class="ex pt-ex"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
-    <div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
+    <div class="ex pt-ex${miss(p,"los putts")?" pend":""}"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
+    <div class="extras"><div class="ex${miss(p,"el drive")?" pend":""}"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
      </div></div>`});
   html+=`</fieldset>${c.id===BUILTIN.id&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>`:""}
-  <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}">Hoyo ${L[k+1]+1} →</button>`}</div>
+  ${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
+  <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>
   ${S.focus?"":`<p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p>`}</div>`;
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
@@ -1518,7 +1538,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      if(!t.name.trim()||TPAL.some(x=>x[0]===t.name.trim()))t.name=nx[0];t.color=nx[1];break}
    case"cdef":cd.def=cd.tees[+v].k;break;
    case"tab":S.view=v;ui.setupErr="";scrollTop=true;break;
-   case"go":r.cur=Math.max(0,Math.min(r.n-1,+v));scrollTop=true;break;
+   case"go":if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;r.cur=Math.max(0,Math.min(r.n-1,+v));scrollTop=true;break;
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
@@ -1537,7 +1557,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"map":e.preventDefault();ui.map=!ui.map;break;
    case"setup":S.view="setup";ui.draft=makeDraft();scrollTop=true;break;
    case"edit":{const t=S.rounds.find(x=>x.id===v);if(!t)return;S.cur=v;S.view="setup";ui.draft=makeDraft(t);scrollTop=true;break}
-   case"close":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");askPersist();ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
+   case"close":{if(!v&&r&&!pendGate(r,h)){vib([20,40,20]);break}const t=v?S.rounds.find(x=>x.id===v):r;t.closed=true;if(!v){S.view="games";S.gamesMode="round";scrollTop=true;toast("Vuelta cerrada");askPersist();ui.fresh=t.id;setTimeout(()=>{ui.fresh=null},600)}break}
    case"reopen":{const t=v?S.rounds.find(x=>x.id===v):r;t.closed=false;break}
    case"padd":readDraft();if(ui.draft.players.length<MAXP){const A=ui.draft.players.filter(p=>p.team==="A").length;ui.draft.players.push({name:"",team:A>ui.draft.players.length-A?"B":"A",tee:ui.draft.tee})}break;
    case"shuffle":{readDraft();shufflePlayers(ui.draft);ui.mixed=true;setTimeout(()=>{ui.mixed=false},500);vib([12,30,12]);toast("Orden y equipos sorteados");break}
@@ -1641,10 +1661,11 @@ async function keepAwake(){const r=R(),on=!!r&&!r.closed&&document.visibilitySta
 let touch0=null;
 function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;return}const t=e.touches[0];touch0={x:t.clientX,y:t.clientY}}
 function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
-  if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
+  if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;
+  if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="cd6bbf4b7f";
+const VERSION="cfaae4d29a";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
