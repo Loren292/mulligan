@@ -234,6 +234,12 @@ details.rule p{font-size:14px;margin:6px 0 0;color:var(--muted)}
 textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid2>*{min-width:0}
+.modeseg{width:100%}
+.modeseg button{flex:1;height:40px;font-size:15px}
+.check span{flex:1;min-width:0}
+.qbtn{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--muted);background:transparent;color:var(--muted);font-weight:700;font-size:14px;line-height:1;padding:0}
+.qbtn[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.ruletip{grid-column:1/-1;margin:-2px 0 2px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--ink)}
 .teedot{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;flex:none}
 .teedot.azul{background:#2563eb}.teedot.blanca{background:#fff}.teedot.roja{background:#dc2626}
 .teebtn{flex:none;width:40px;height:38px;border:1px solid var(--line);background:var(--surface);border-radius:10px;display:grid;place-items:center;padding:0}
@@ -439,6 +445,8 @@ textarea{font-family:ui-monospace,Menlo,monospace;font-size:12px;min-height:120p
 .mg .field input,.mg .field select,.mg .prow input,.mg .check{border-radius:12px}
 .mg .check input{accent-color:var(--ink)}
 .mg .teebtn{border:0;background:var(--sunk);border-radius:11px}
+.mg .qbtn[aria-expanded="true"]{background:var(--ink);color:var(--volt)}
+.mg .ruletip{border-left-color:var(--volt);box-shadow:inset 4px 0 0 var(--ink)}
 .mg :focus-visible{outline-color:var(--ink)}
 .mg .upd{background:var(--ink)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--ink);border-color:var(--volt)}
@@ -740,36 +748,108 @@ function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab
   return`<div class="stack"><div class="tablewrap"><table class="card"><thead><tr><th>Hoyo</th><th>Par</th>${r.players.map((n,p)=>`<th>${esc(n)}${teeSet(r).length>1?`<br>${teeDot(teeK(r,p))}`:""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
   <div class="legend"><span class="sc e">3</span>Águila <span class="sc b">3</span>Birdie <span class="sc bo">5</span>Bogey <span class="sc d">6</span>Doble o más</div>
   ${r.note?`<p class="note">${esc(r.note)}</p>`:""}</div>`}
-function vGames(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r));if(!on.length)return`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
+// Arriba de Stats y Juegos: ver la vuelta abierta o el historial de todas
+const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mostrar"><button data-a="${a}" data-v="round" aria-pressed="${m==="round"}">Esta vuelta</button><button data-a="${a}" data-v="hist" aria-pressed="${m==="hist"}">Historial</button></div>`;
+function vGames(r){const m=r&&S.gamesMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("gmode",m):""}${m==="round"?vGamesRound(r):vGamesHist()}</div>`}
+function vStats(r){const m=r&&S.statsMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("smode",m):""}${m==="round"?vStatsRound(r):vStatsHist()}</div>`}
+function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r));if(!on.length)return`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
   const solo=r.teams.every(x=>x.length===1);return`<div class="stack">${on.map(([k,t0,rule])=>{const t=solo&&k==="fourball"?"Match play":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
    <p class="g-res">${esc(g.res)}</p>${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
-function vStats(r){const p=Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
+function vStatsRound(r){const p=Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
   const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="sp" data-v="${i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
   if(!o.n)return`<div class="stack">${chips}<p class="muted">${esc(nm(r,p))} todavía no tiene hoyos cargados.</p>${vHcp(nm(r,p),r.me===p)}</div>`;
-  const avg=(a)=>a[1]?(a[0]/a[1]).toFixed(1).replace(".",","):"–";
-  const D=[["e","Águila",getVar("--gold")],["b","Birdie",getVar("--red")],["p","Par",getVar("--accent")],["bo","Bogey",getVar("--blue")],["d","Doble","#7a6f5f"],["t","Triple+","#4a4a4a"]];
-  const tile=(lab,big,sub,bar)=>`<div class="tile"><div class="label">${lab}</div><div class="big">${big}</div><div class="sub">${sub}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:""}</div>`;
   const grp=r.players.map((n,i)=>{const s=stats(r,i);return`<tr><td style="text-align:left">${esc(n)}</td><td>${s.n?s.s+" ("+toPar(s.s-s.par)+")":"–"}</td><td>${pct(s.fw,s.fwN)}</td><td>${pct(s.gir,s.girN)}</td><td>${s.pN?(s.putts/s.pN).toFixed(1).replace(".",","):"–"}</td></tr>`}).join("");
-  return`<div class="stack">${chips}
-  <div class="tiles">
-   ${tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`)}
-   ${tile("Fairways",pct(o.fw,o.fwN),o.fwN?`${o.fw}/${o.fwN} · ← ${o.fwL} · → ${o.fwR}`:"Sin datos de salida",o.fwN?Math.round(o.fw/o.fwN*100):null)}
+  return`<div class="stack">${chips}${statBlocks(o,tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`),tile("Penalidades",o.pen,"golpes de penalidad"))}
+  <div class="label">Comparación del grupo</div>
+  <div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Jugador</th><th>Score</th><th>FW</th><th>GIR</th><th>Putts/h</th></tr></thead><tbody>${grp}</tbody></table></div>
+  <div class="tile"><div class="label">Sobre par, hoyo a hoyo</div><div class="chartwrap">${chToPar(r)}</div></div>
+  ${r.teams[0].length&&r.teams[1].length&&doneH(r).length?`<div class="tile"><div class="label">${r.teams.every(x=>x.length===1)?"Match play":"Four-ball"}, hoyo a hoyo</div><div class="chartwrap">${chFourball(r)}</div></div>`:""}
+  ${vHcp(nm(r,p),r.me===p)}</div>`}
+const tile=(lab,big,sub,bar)=>`<div class="tile"><div class="label">${lab}</div><div class="big">${big}</div><div class="sub">${sub}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:""}</div>`;
+// Fairways, GIR, putts, bunkers, distribución y promedio por tipo de hoyo (los dos primeros tiles los pone quien llama)
+function statBlocks(o,t1,t2){const avg=a=>a[1]?(a[0]/a[1]).toFixed(1).replace(".",","):"–";
+  const D=[["e","Águila",getVar("--gold")],["b","Birdie",getVar("--red")],["p","Par",getVar("--accent")],["bo","Bogey",getVar("--blue")],["d","Doble","#7a6f5f"],["t","Triple+","#4a4a4a"]];
+  return`<div class="tiles">${t1}
+   ${tile("Fairways",pct(o.fw,o.fwN),o.fwN?`${o.fw}/${o.fwN} · ← ${o.fwL} · → ${o.fwR}`:"Sin datos de drive",o.fwN?Math.round(o.fw/o.fwN*100):null)}
    ${tile("Greens en regulación",pct(o.gir,o.girN),o.girN?`${o.gir}/${o.girN} hoyos`:"Cargá putts para calcularlo",o.girN?Math.round(o.gir/o.girN*100):null)}
-   ${tile("Putts",o.pN?o.putts:"–",o.pN?`${(o.putts/o.pN).toFixed(1).replace(".",",")} por hoyo · ${o.three} de 3 · ${o.one} de 1`:"Sin datos")}
-   ${tile("Penalidades",o.pen,"golpes de penalidad")}
+   ${tile("Putts",o.pN?(o.putts/o.pN).toFixed(2).replace(".",","):"–",o.pN?`por hoyo · ${o.three} de 3 · ${o.one} de 1 en ${o.pN} hoyos`:"Sin datos")}
+   ${t2}
    ${tile("Bunkers",o.bk,o.bk?`${o.ss} sand save${o.ss===1?"":"s"} (${pct(o.ss,o.bk)})`:"Sin bunkers")}
   </div>
   <div class="tile"><div class="label">Distribución de scores</div>
    <div class="dist" style="margin-top:8px">${D.filter(([k])=>o.dist[k]).map(([k,,c])=>`<span style="flex:${o.dist[k]};background:${c}">${o.dist[k]}</span>`).join("")}</div>
    <div class="legend" style="margin-top:6px">${D.map(([k,l,c])=>`<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};margin-right:4px"></i>${l} ${o.dist[k]}</span>`).join("")}</div></div>
   <div class="tile"><div class="label">Promedio por tipo de hoyo</div><div class="row" style="justify-content:space-around;margin-top:6px">
-   ${[3,4,5].map(t=>`<div style="text-align:center"><div class="big" style="font-size:26px">${avg(o.pt[t])}</div><div class="sub">Par ${t}</div></div>`).join("")}</div></div>
-  <div class="label">Comparación del grupo</div>
-  <div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Jugador</th><th>Score</th><th>FW</th><th>GIR</th><th>Putts/h</th></tr></thead><tbody>${grp}</tbody></table></div>
-  <div class="tile"><div class="label">Sobre par, hoyo a hoyo</div><div class="chartwrap">${chToPar(r)}</div></div>
-  ${r.teams[0].length&&r.teams[1].length&&doneH(r).length?`<div class="tile"><div class="label">${r.teams.every(x=>x.length===1)?"Match play":"Four-ball"}, hoyo a hoyo</div><div class="chartwrap">${chFourball(r)}</div></div>`:""}
-  ${vHcp(nm(r,p),r.me===p)}</div>`}
+   ${[3,4,5].map(t=>`<div style="text-align:center"><div class="big" style="font-size:26px">${avg(o.pt[t])}</div><div class="sub">Par ${t}</div></div>`).join("")}</div></div>`}
+
+/* ---------- historial ---------- */
+// Cada persona se identifica por su nombre; en las vueltas donde alguien se marcó "Yo", ese jugador es "vos" aunque el nombre cambie
+const meKey=()=>S.meName?pkey(S.meName):null;
+const pk=(r,p,mk)=>r.me===p&&mk?mk:pkey(r.players[p]);
+const idxOf=(r,k,mk)=>r.players.findIndex((_,p)=>pk(r,p,mk)===k);
+const finished=r=>!!r.closed||hs(r).every(h=>comp(r,h));
+function people(){const mk=meKey(),m=new Map();
+  [...S.rounds].sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>r.players.forEach((n,p)=>{const k=pk(r,p,mk),e=m.get(k)||{k,name:n,c:0};e.name=r.me===p&&S.meName?S.meName:n;e.c++;m.set(k,e)}));
+  return[...m.values()].sort((a,b)=>(b.k===mk)-(a.k===mk)||b.c-a.c||a.name.localeCompare(b.name))}
+function histPick(ps){const mk=meKey(),sel=ps.some(e=>e.k===S.histP)?S.histP:ps[0].k;
+  return{sel,mk,chips:`<div class="pchips">${ps.map(e=>`<button class="chip" data-a="hp" data-v="${esc(e.k)}" aria-pressed="${e.k===sel}">${esc(e.name)}${e.k===mk?" (vos)":""}</button>`).join("")}</div>`}}
+function addStats(a,b){["s","par","n","fw","fwN","fwL","fwR","gir","girN","putts","pN","three","one","pen","bk","ss"].forEach(k=>a[k]+=b[k]);
+  Object.keys(a.dist).forEach(k=>a.dist[k]+=b.dist[k]);[3,4,5].forEach(t=>{a.pt[t][0]+=b.pt[t][0];a.pt[t][1]+=b.pt[t][1]});return a}
+const zeroStats=()=>({s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}});
+function vStatsHist(){const ps=people();
+  if(!ps.length)return`<p class="muted">Todavía no hay vueltas. Cuando cargues alguna, acá vas a ver los números de cada jugador con todas sus vueltas juntas.</p>`;
+  const{sel,mk,chips}=histPick(ps),who=ps.find(e=>e.k===sel);
+  const rs=S.rounds.map(r=>({r,p:idxOf(r,sel,mk)})).filter(e=>e.p>=0).map(e=>({...e,x:stats(e.r,e.p)})).filter(e=>e.x.n).sort((a,b)=>b.r.date.localeCompare(a.r.date));
+  if(!rs.length)return`<div class="stack">${chips}<p class="muted">${esc(who.name)} todavía no tiene hoyos cargados.</p></div>`;
+  const o=rs.reduce((a,e)=>addStats(a,e.x),zeroStats());
+  const full=rs.filter(e=>e.x.n===e.r.n),r18=full.filter(e=>e.r.n===18),r9=full.filter(e=>e.r.n===9);
+  const mean=(l,f)=>l.reduce((a,e)=>a+f(e),0)/l.length,best=l=>l.slice().sort((a,b)=>(a.x.s-a.x.par)-(b.x.s-b.x.par)||a.x.s-b.x.s)[0];
+  const sc18=r18.length?tile("Promedio de 18",fmt1(mean(r18,e=>e.x.s)),`${toPar(Math.round(mean(r18,e=>e.x.s-e.x.par)))} · mejor ${best(r18).x.s} (${toPar(best(r18).x.s-best(r18).x.par)}) el ${ddmm(best(r18).r.date)}`)
+    :r9.length?tile("Promedio de 9",fmt1(mean(r9,e=>e.x.s)),`${toPar(Math.round(mean(r9,e=>e.x.s-e.x.par)))} · mejor ${best(r9).x.s} (${toPar(best(r9).x.s-best(r9).x.par)}) el ${ddmm(best(r9).r.date)}`)
+    :tile("Hoyos jugados",o.n,`${toPar(o.s-o.par)} en total`);
+  const vt=tile("Vueltas",rs.length,`${r18.length} de 18 y ${r9.length} de 9 completas${r18.length&&r9.length?` · mejor 9: ${best(r9).x.s} (${toPar(best(r9).x.s-best(r9).x.par)})`:""}`);
+  // Mano a mano: golpes totales en las vueltas completas que jugaron juntos (sin hándicap, como juega el grupo)
+  const h2h=new Map();full.forEach(e=>e.r.players.forEach((_,q)=>{if(q===e.p)return;const y=stats(e.r,q);if(y.n!==e.r.n)return;
+    const k=pk(e.r,q,mk),h=h2h.get(k)||{k,name:e.r.players[q],n:0,w:0,l:0,t:0,d:0};h.n++;h.d+=e.x.s-y.s;if(e.x.s<y.s)h.w++;else if(e.x.s>y.s)h.l++;else h.t++;h2h.set(k,h)}));
+  const hh=[...h2h.values()].sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name));
+  const vs=hh.length?`<div class="label">Mano a mano</div><div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Contra</th><th>Vueltas</th><th>G</th><th>P</th><th>E</th><th>Dif.</th></tr></thead><tbody>${hh.map(h=>{const d=h.d/h.n;
+    return`<tr><td style="text-align:left">${esc(h.name)}</td><td>${h.n}</td><td>${h.w}</td><td>${h.l}</td><td>${h.t}</td><td>${d===0?"=":(d<0?"−":"+")+fmt1(Math.abs(d))}</td></tr>`}).join("")}</tbody></table></div>
+    <p class="note">Por golpes totales en las vueltas completas que jugaron juntos. Dif. es el promedio de golpes de ${esc(who.name)} contra cada uno: negativo, le saca ventaja.</p>`:"";
+  const last=`<div class="label">Últimas vueltas</div><div class="g-lines">${rs.slice(0,12).map(e=>`<div><span>${fmtDate(e.r.date)} · ${e.r.n===18?"18 hoyos":e.r.start===0?"Ida":"Vuelta"}${e.x.n<e.r.n?` · ${e.x.n} h`:""} · ${TEEP(e.r,e.p).name}</span><span>${e.x.s} (${toPar(e.x.s-e.x.par)})</span></div>`).join("")}</div>`;
+  return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${vs}${last}${vHcp(who.name,sel===mk)}</div>`}
+
+// Ganadores de cada juego en una vuelta terminada: [{pl:jugadores, w:ganadores}] (Snake: l = quien perdió)
+function gWin(k,r){const all=ids(r),[A,B]=r.teams,top=(v,hi)=>{const m=hi?Math.max(...v):Math.min(...v);if(v.every(x=>x===m))return[];return all.filter(p=>v[p]===m)};
+  const team=(x)=>x>0?A:x<0?B:[],teamsAll=[...A,...B],L=hs(r);
+  switch(k){
+   case"medal":{const t=all.map(p=>{const x=stats(r,p);return x.n===r.n?x.s-x.par:null});if(t.some(x=>x==null))return[];return[{pl:all,w:top(t,false)}]}
+   case"fourball":{const m=matchPlay(r,L,h=>best(r,h,A),h=>best(r,h,B),"","");return m.done?[{pl:teamsAll,w:m.winner===0?A:m.winner===1?B:[]}]:[]}
+   case"nassau":{const parts=r.n===18?[L.slice(0,9),L.slice(9),L]:[L];let a=0,b=0;parts.forEach(l=>{const m=matchPlay(r,l,h=>best(r,h,A),h=>best(r,h,B),"","");if(m.winner===0)a++;else if(m.winner===1)b++});return[{pl:teamsAll,w:team(a-b)}]}
+   case"skins":{const won=all.map(()=>0);let carry=0;L.forEach(h=>{carry++;const w=lowWinner(r,h);if(w>=0){won[w]+=carry;carry=0}});return[{pl:all,w:won.some(x=>x)?top(won,true):[]}]}
+   case"sixes":{const seg=r.n/3,pts=[0,0,0,0];[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]].forEach(([X,Y],i)=>{const m=matchPlay(r,L.slice(i*seg,(i+1)*seg),h=>best(r,h,X),h=>best(r,h,Y),"","");if(m.winner===0)X.forEach(p=>pts[p]++);else if(m.winner===1)Y.forEach(p=>pts[p]++)});return[{pl:all,w:top(pts,true)}]}
+   case"vegas":{let pts=0;L.forEach(h=>{const bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);pts+=vnum(sc(r,h,B[0]),sc(r,h,B[1]),bA&&!bB)-vnum(sc(r,h,A[0]),sc(r,h,A[1]),bB&&!bA)});return[{pl:teamsAll,w:team(pts)}]}
+   case"wolf":{if(!L.some(h=>r.wolf[h]!=null))return[];const pts=[0,0,0,0];L.forEach((h,i)=>{const w=i%4,dec=r.wolf[h];if(dec==null)return;const others=all.filter(p=>p!==w);
+     if(typeof dec==="number"){const X=[w,dec],Y=others.filter(p=>p!==dec),a=best(r,h,X),b=best(r,h,Y);if(a<b)X.forEach(p=>pts[p]++);else if(b<a)Y.forEach(p=>pts[p]++)}
+     else{const a=sc(r,h,w),b=best(r,h,others);if(a<b)pts[w]+=dec==="blind"?6:4;else if(b<a)others.forEach(p=>pts[p]++)}});return[{pl:all,w:top(pts,true)}]}
+   case"rabbit":return(r.n===18?[L.slice(0,9),L.slice(9)]:[L]).map(l=>{let hd=null;l.forEach(h=>{const w=lowWinner(r,h);if(w>=0)hd=w});return{pl:all,w:hd==null?[]:[hd]}});
+   case"snake":{let hd=null,any=false;L.forEach(h=>{const ps=r.d[h].map(x=>x.p);if(ps.some(x=>x!=null))any=true;let mx=0,who=null;ps.forEach((v,p)=>{if(v!=null&&v>=3&&v>=mx){mx=v;who=p}});if(who!=null)hd=who});return any?[{pl:all,w:[],l:hd==null?[]:[hd]}]:[]}
+   case"bba":{let a=0,b=0;L.forEach(h=>{const x=best(r,h,A),y=best(r,h,B),s1=sum(r,h,A),t=sum(r,h,B);a+=(x<y)+(s1<t);b+=(y<x)+(t<s1)});return[{pl:teamsAll,w:team(a-b)}]}
+   case"stableford":{const t=all.map(p=>{let s=0;L.forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return s});return[{pl:all,w:top(t,true)}]}}
+  return[]}
+function vGamesHist(){const mk=meKey(),done=S.rounds.filter(finished),names=new Map(people().map(e=>[e.k,e.name]));
+  const intro=done.length?`<p class="note">${done.length} vuelta${done.length===1?"":"s"} terminada${done.length===1?"":"s"}. Cuenta quién ganó cada juego; los empates arriba cuentan para todos los empatados.</p>`
+    :`<p class="note">Todavía no hay vueltas terminadas. Estos son todos los juegos que podés jugar y cómo se juega cada uno.</p>`;
+  return`<div class="stack">${intro}${GAMES.map(([k,t,rule])=>{const tab=new Map();let n=0;
+    done.forEach(r=>{if(!r.games[k]||!okR(k,r))return;gWin(k,r).forEach(ev=>{n++;ev.pl.forEach(p=>{const key=pk(r,p,mk),e=tab.get(key)||{key,j:0,w:0,l:0};e.j++;if(ev.w.includes(p))e.w++;if(ev.l&&ev.l.includes(p))e.l++;tab.set(key,e)})})});
+    const snake=k==="snake",unit=k==="rabbit"?"medias vueltas":"vueltas";
+    const rows=[...tab.values()].sort((a,b)=>snake?(a.l/a.j-b.l/b.j)||b.j-a.j:(b.w/b.j-a.w/a.j)||b.w-a.w||b.j-a.j);
+    const rate=e=>snake?e.l/e.j:e.w/e.j,lead=rows.filter(e=>rate(e)===rate(rows[0])&&(snake||e.w===rows[0].w)).map(e=>esc(names.get(e.key)||e.key));
+    const leadTxt=lead.length>1?lead.slice(0,-1).join(", ")+" y "+lead[lead.length-1]:lead[0];
+    const res=!n?`<p class="note">Sin vueltas terminadas con este juego.</p>`:`<p class="g-res">${snake?"Menos veces con la víbora":lead.length>1?"Más ganadores":"Más ganador"}: ${leadTxt}</p>
+     <div class="g-lines">${rows.map(e=>`<div><span>${esc(names.get(e.key)||e.key)}${e.key===mk?" (vos)":""}</span><span>${snake?`la tuvo ${e.l} de ${e.j}`:`${e.w} de ${e.j} (${Math.round(e.w/e.j*100)}%)`}</span></div>`).join("")}</div>
+     <p class="note">${n} ${n===1?unit.replace(/s$/,"").replace("medias vuelta","media vuelta"):unit} jugad${k==="rabbit"?"a":"o"}${n===1?"":"s"}.</p>`;
+    return`<section class="game"><div class="g-h"><h3>${t}</h3></div>${res}<details class="rule"${n?"":" open"}><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
 function getVar(v){try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#888"}catch(e){return"#888"}}
 function vRounds(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date));
   let html=`<div class="stack"><div class="row" style="justify-content:space-between"><h2>Vueltas</h2><button class="btn primary" data-a="setup">Nueva vuelta</button></div><div class="rlist">`;
@@ -826,7 +906,7 @@ function vSetup(){if(!ui.draft)ui.draft=makeDraft();const d=ui.draft,n=d.players
    <div class="seg"><button type="button" data-a="pme" data-v="${i}" aria-pressed="${!!p.me}" aria-label="Soy ${esc(p.name||"el jugador "+(i+1))}">Yo</button></div>
    <button type="button" class="btn small" data-a="pdel" data-v="${i}" ${n<=1?"disabled":""} aria-label="Quitar jugador ${i+1}">✕</button></div>`).join("")}</div>
   ${n<MAXP?`<button type="button" class="btn" data-a="padd">+ Agregar jugador</button>`:`<p class="note">Máximo ${MAXP} jugadores.</p>`}
-  <div class="label">Juegos</div><div class="checks">${GAMES.map(([k,t])=>{const why=gameOk(k,n,A,B);return`<label class="check${why?" off":""}"><input type="checkbox" id="su-g-${k}" ${!why&&d.games[k]?"checked":""} ${why?"disabled":""}><span>${t}${why?`<br><small class="muted">${why}</small>`:""}</span></label>`}).join("")}</div>
+  <div class="label">Juegos</div><div class="checks">${GAMES.map(([k,t,rule])=>{const why=gameOk(k,n,A,B);return`<label class="check${why?" off":""}"><input type="checkbox" id="su-g-${k}" ${!why&&d.games[k]?"checked":""} ${why?"disabled":""}><span>${t}${why?`<br><small class="muted">${why}</small>`:""}</span><button type="button" class="qbtn" data-a="rule" data-v="${k}" aria-expanded="${ui.rule===k}" aria-label="Cómo se juega ${t}">?</button></label>${ui.rule===k?`<p class="ruletip"><b>${t}.</b> ${rule}</p>`:""}`}).join("")}</div>
   <p class="note">El círculo de color es la salida de cada uno: tocalo para cambiarla. Cada jugador se compara con el par de su salida.</p>
   <p class="note">Los juegos por equipos usan la mejor pelota de cada equipo, así que también sirven para un mano a mano (1 contra 1). El lobo rota según el orden de los jugadores.</p>
   ${ui.setupErr?`<p class="err">${esc(ui.setupErr)}</p>`:""}
@@ -880,7 +960,7 @@ function applyTheme(){let t=S.theme==="dark"?"orig-dark":S.theme;if(!THEMES.incl
 function render(){applyTheme();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||(v==="setup"&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
-  app.innerHTML=!r&&!["rounds","setup","incoming"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():vGames(r)}
+  app.innerHTML=!r&&!["rounds","setup","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():vGames(r)}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
   if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf"].includes(a))return;
@@ -895,6 +975,10 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"bk":x.bk=!x.bk;break;
    case"wolf":{const val=v==="lone"||v==="blind"?v:+v;r.wolf[h]=r.wolf[h]===val?null:val;break}
    case"sp":S.statsP=+v;break;
+   case"hp":S.histP=v;break;
+   case"smode":S.statsMode=v;break;
+   case"gmode":S.gamesMode=v;break;
+   case"rule":readDraft();ui.rule=ui.rule===v?null:v;break;
    case"theme":S.theme=S.theme==="dark"?"light":"dark";break;
    case"map":e.preventDefault();ui.map=!ui.map;break;
    case"setup":S.view="setup";ui.draft=makeDraft();scrollTop=true;break;
