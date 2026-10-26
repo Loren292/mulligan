@@ -551,6 +551,54 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
 @media (max-width:384px){.round-meta{display:none}}
+/* modo focus */
+.focusing header.top{display:none}
+.focusing main{padding-top:max(12px,env(safe-area-inset-top,0px))}
+.fhero{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px}
+.fh-top{display:flex;align-items:flex-end;gap:16px;min-width:0}
+.fh-no{display:flex;flex-direction:column;line-height:.85}
+.fh-no small,.fh-facts small{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.fh-no b{font-family:var(--display);font-weight:700;font-size:68px;line-height:.85;margin-top:4px;font-variant-numeric:tabular-nums}
+.fh-facts{display:flex;gap:0;align-self:end;padding-bottom:4px}
+.fh-facts>div{display:flex;flex-direction:column;gap:3px;padding:0 12px;border-left:1px solid var(--line)}
+.fh-facts>div:first-child{border-left:0;padding-left:0}
+.fh-facts b{font-family:var(--display);font-weight:700;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.fh-top .focus-t{position:absolute;top:12px;right:12px}
+.fh-seg{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.fh-seg.n18{grid-template-columns:repeat(18,1fr);gap:3px}
+.sg{border:0;background:transparent;padding:6px 0;position:relative;cursor:pointer}
+.sg i{display:block;height:8px;border-radius:3px;background:var(--line)}
+.sg.u i{background:var(--red)}.sg.p i{background:var(--accent)}.sg.o i{background:var(--muted)}.sg.oo i{background:var(--ink)}
+.sg[aria-current="true"] i{height:14px;margin-top:-3px;box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.sg.falta::after{content:"";position:absolute;left:50%;bottom:-3px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--red)}
+.fh-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;min-height:22px}
+.fh-foot>span{white-space:nowrap}
+.fh-foot em{font-style:normal;font-weight:700}
+.fh-live{border:0;background:var(--sunk);color:var(--ink);border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:pointer}
+.fh-live small{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.fcards{display:flex;flex-direction:column;gap:inherit}
+.fcards{gap:12px}
+.fcards.sl{animation:fsl .22s ease both}.fcards.sr{animation:fsr .22s ease both}
+@keyframes fsl{from{opacity:.2;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes fsr{from{opacity:.2;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.fbar{position:sticky;bottom:calc(var(--tabsh,60px) + 8px);z-index:4;display:flex;flex-direction:column;gap:8px;margin:0 -6px;padding:8px 6px;border-radius:18px;background:var(--bg);box-shadow:0 -6px 18px -10px rgba(0,0,0,.25)}
+.fbar .navrow .btn{min-height:52px;font-size:17px}
+.mg .fhero{background:var(--blk);color:var(--on-blk2);border:0;border-radius:22px}
+.mg .fhero .fh-no small,.mg .fhero .fh-facts small{color:var(--on-blk);opacity:.85}
+.mg .fhero .fh-no b{color:var(--on-blk)}
+.mg .fhero .fh-facts>div{border-color:color-mix(in srgb,var(--on-blk2) 22%,transparent)}
+.mg .fhero .sg i{background:color-mix(in srgb,var(--on-blk2) 18%,transparent)}
+.mg .fhero .sg.u i{background:#ff6b55}.mg .fhero .sg.p i{background:var(--on-blk)}.mg .fhero .sg.o i{background:color-mix(in srgb,var(--on-blk2) 55%,transparent)}.mg .fhero .sg.oo i{background:var(--on-blk2)}
+.mg .fhero .sg[aria-current="true"] i{box-shadow:0 0 0 2px var(--blk),0 0 0 4px var(--on-blk2)}
+.mg .fhero .fh-live{background:color-mix(in srgb,var(--on-blk2) 14%,transparent);color:var(--on-blk2)}
+.mg .fhero .fh-live small{color:var(--on-blk)}
+.mg .fhero .focus-t{background:transparent;border-color:color-mix(in srgb,var(--on-blk2) 35%,transparent);color:var(--on-blk2)}
+:root.t-mulligan-dark .fhero .sg.u i{background:#c0321f}
+:root.t-mulligan-dark .fhero .sg.p i{background:var(--on-blk)}:root.t-mulligan-dark .fhero .sg.o i{background:color-mix(in srgb,var(--on-blk) 28%,transparent)}:root.t-mulligan-dark .fhero .sg.oo i{background:color-mix(in srgb,var(--on-blk) 55%,transparent)}:root.t-mulligan-dark .fhero .sg i{background:color-mix(in srgb,var(--on-blk) 10%,transparent)}
+.royal .fhero{border-radius:2px;border-color:var(--brass);box-shadow:inset 0 0 0 4px var(--surface),inset 0 0 0 5px var(--leaf)}
+.royal .fh-no b{font-style:italic}
+.royal .fh-top{padding-top:30px}
+.royal .fbar{border-radius:2px}
 /* lo que falta cargar */
 .ex.pend .label{color:var(--red)}
 .ex.pend .step,.ex.pend .seg{outline:2px dashed var(--red);outline-offset:2px}
@@ -997,11 +1045,28 @@ function pend(r,h){const out=[];r.players.forEach((n,p)=>{const x=r.d[h][p];
 const pendTxt=(r,l)=>l.map(([p,k])=>`${k} de ${nm(r,p)}`).join(", ");
 // Al pasar de hoyo o cerrar la vuelta: si falta algo avisa una vez; el segundo intento pasa igual
 function pendGate(r,h){const k=r.id+":"+h;if(!pend(r,h).length||ui.warned===k){ui.warned=null;return true}ui.warned=k;return false}
+/* ---------- modo focus: la pantalla del hoyo para jugar ---------- */
+// Arriba la tarjeta del hoyo: número, par, distancia de tu salida, índice, los hoyos como barra con tus resultados,
+// tu total y cómo viene el primer juego. Sin la barra de arriba, y con los botones para pasar de hoyo siempre a mano.
+function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0,u=c.unit==="yd"?"yd":"m";let tot=0,tp=0,n=0;
+  L.forEach(hh=>{const v=sc(r,hh,me);if(v!=null){tot+=v;tp+=v-PP(r,me)[hh];n++}});
+  const seg=L.map((hh,i)=>{const v=sc(r,hh,me),d=v==null?null:v-PP(r,me)[hh],cl=d==null?"":d<0?"u":d===0?"p":d===1?"o":"oo";
+    return`<button data-a="go" data-v="${i}" class="sg ${cl}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}" aria-label="Hoyo ${hh+1}${v==null?"":": "+v}"><i></i></button>`}).join("");
+  const lv=r.closed?null:liveRows(r)[0];
+  return`<div class="stack"><section class="fhero" aria-label="Hoyo ${h+1}">
+   <div class="fh-top"><div class="fh-no"><small>Hoyo</small><b>${h+1}</b></div>
+    <div class="fh-facts"><div><small>Par</small><b>${parLab(r,h)}</b></div><div><small>${u==="yd"?"Yardas":"Metros"}</small><b>${dist(c,teeK(r,me),h)||"–"}</b></div><div><small>Índice</small><b>${siLab(r,h)}</b></div></div>
+    <button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button></div>
+   <div class="fh-seg${L.length>9?" n18":""}">${seg}</div>
+   <div class="fh-foot"><span><b>${esc(nm(r,me))}</b> ${n?`${tot} <em>${toPar(tp)}</em> · ${n} ${n===1?"hoyo":"hoyos"}`:"sin hoyos todavía"}</span>${lv?`<button type="button" class="fh-live" data-a="live"><small>${esc(lv[0])}</small> ${esc(lv[1])}</button>`:""}</div>
+  </section>`}
+// Quien no carga drive, penalidades ni bunker en esta vuelta los ve recién si los empieza a usar (vos, siempre)
+const fullCard=(r,p)=>p===r.me||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
-  let html=`<div class="stack">
+  let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
-   <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Mostrar el marcador en vivo, la grilla de hoyos y el mapa":"Esconder el marcador en vivo, la grilla de hoyos y el mapa"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
-   ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
+   <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
+   ${mixed?"":`<div class="fact"><span class="label">${c.unit==="yd"?"Yardas":"Metros"}</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
    <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div></div>
   ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
@@ -1016,21 +1081,22 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
   if(P(r)[h]===3&&(r.games.greenies&&okR("greenies",r)||r.games.garbage&&okR("garbage",r))){const g=r.grn&&r.grn[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span class="label">Greenie</span><span class="note">más cerca del hoyo desde la salida</span></div>
     <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`).join("")}</div><p class="note">Cuenta si después hace par o mejor.</p></div>`}
+  if(S.focus){html+=`<div class="fcards${ui.dir>0?" sl":ui.dir<0?" sr":""}">`;ui.dir=0}
   r.players.forEach((name,p)=>{const x=r.d[h][p],par=PP(r,p)[h];let tot=0,tp=0;L.forEach(hh=>{const v=sc(r,hh,p);if(v!=null){tot+=v;tp+=v-PP(r,p)[hh]}});
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
     const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
     // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
-    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
+    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} ${c.unit==="yd"?"yd":"m"}${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
     <div class="score-row">${step}
     <div class="ex pt-ex${miss(p,"los putts")?" pend":""}"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
-    <div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
+    ${S.focus&&!fullCard(r,p)?"":`<div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
-     </div></div>`});
-  html+=`</fieldset>${c.id===BUILTIN.id&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>`:""}
-  ${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
-  <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>
+     </div>`}</div>`});
+  html+=`${S.focus?"</div>":""}</fieldset>${c.id===BUILTIN.id&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${MAP}" alt="Vista aérea de la Cancha Nueva con los 18 hoyos numerados"></details>`:""}
+  ${S.focus?'<div class="fbar">':""}${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
+  <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>${S.focus?"</div>":""}
   ${S.focus?"":`<p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p>`}</div>`;
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
@@ -1512,9 +1578,10 @@ function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==
     return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
   <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
   <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
-function render(){applyTheme();document.getElementById("sheet").innerHTML=vSheet()+vImg();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||((v==="setup"||v==="course")&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
+  const nv=document.querySelector("nav.tabs");if(nv)document.documentElement.style.setProperty("--tabsh",nv.offsetHeight+"px");
   app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
@@ -1538,7 +1605,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      if(!t.name.trim()||TPAL.some(x=>x[0]===t.name.trim()))t.name=nx[0];t.color=nx[1];break}
    case"cdef":cd.def=cd.tees[+v].k;break;
    case"tab":S.view=v;ui.setupErr="";scrollTop=true;break;
-   case"go":if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;r.cur=Math.max(0,Math.min(r.n-1,+v));scrollTop=true;break;
+   case"go":if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
@@ -1583,7 +1650,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"indrop":ui.incoming=null;ui.inCourse=null;clearHash();S.view=S.rounds.length?"games":"rounds";scrollTop=true;break;
    case"exp":ui.exp=!ui.exp;break;
    case"bkfile":backupFile();return
-   case"focus":S.focus=!S.focus;toast(S.focus?"Modo focus: solo lo que se carga en el hoyo":"Con marcador, grilla de hoyos y mapa");break;
+   case"focus":S.focus=!S.focus;toast(S.focus?"Modo focus":"Pantalla completa del hoyo");break;
    case"live":S.view="games";S.gamesMode="round";scrollTop=true;break;
    case"img":{const t=S.rounds.find(x=>x.id===v)||r;if(t)openImage(t);return}
    case"imgshare":{const m=ui.img;if(m)giveFile(m.blob,m.name,"Mulligan").then(ok=>{if(ok===null)toast("No se pudo compartir la imagen")});return}
@@ -1663,9 +1730,9 @@ function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;r
 function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
-  r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
+  ui.dir=Math.sign(k-r.cur);r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="7c5dfdba10";
+const VERSION="33b81a5276";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
