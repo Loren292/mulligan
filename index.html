@@ -490,8 +490,8 @@ const GAMES=[
  ["stableford","Stableford","Doble bogey o peor 0, bogey 1, par 2, birdie 3, águila 4. Gana quien sume más."],
  ["stab2","Stableford modificado","Como el Stableford pero premia arriesgar (el del PGA Tour): albatros 8, águila 5, birdie 2, par 0, bogey −1, doble bogey o peor −3. Gana quien sume más."],
  ["fourball","Four-ball match play","Cuenta la mejor pelota de cada pareja y se gana por hoyos. Termina cuando la ventaja supera los hoyos que quedan."],
- ["nassau","Nassau","Tres partidos four-ball a la vez: ida, vuelta y total. Cada uno vale un punto."],
- ["rr","Match play todos contra todos","Cada jugador juega un match play contra cada uno de los demás, todos a la vez. Ganar un partido vale 1 punto y empatarlo, medio. Gana quien sume más."],
+ ["nassau","Nassau","Tres partidos de match play a la vez: ida, vuelta y total. Cada uno vale un punto. Se juega mano a mano o por parejas con la mejor pelota."],
+ ["rr","Match play individual","Cada uno con su pelota, se gana por hoyos y termina cuando la ventaja supera los hoyos que quedan. Con 3 o más, cada jugador juega un partido contra cada uno de los demás a la vez: ganar vale 1 punto y empatar, medio."],
  ["sixes","Sixes","Four-ball en tres tramos (cada 6 hoyos). En cada tramo cambian las parejas. Gana quien gane más tramos."],
  ["bba","Best ball + aggregate","Dos puntos por hoyo: uno para la mejor pelota y otro para la menor suma de la pareja."],
  ["lowhigh","Low-High","Por parejas. Dos puntos por hoyo: uno para la pareja con la mejor pelota (low) y otro para la pareja cuyo peor score sea mejor (high)."],
@@ -586,7 +586,7 @@ function gWolf(r){const pts=[0,0,0,0],L=hs(r);let missing=0;
   const order=ids(r).sort((x,y)=>pts[y]-pts[x]);const lines=order.map(p=>[nm(r,p),pts[p]+" pts"]);
   if(missing)lines.push(["Hoyos sin decisión del lobo",missing]);
   const top=pts[order[0]];return{res:top?`Lidera ${order.filter(p=>pts[p]===top).map(p=>nm(r,p)).join(" y ")} con ${top}`:missing?"Cargá quién eligió el lobo en cada hoyo":"Sin puntos todavía",lines}}
-function gRabbit(r){const L=hs(r),halves=r.n===18?[["Ida",L.slice(0,9)],["Vuelta",L.slice(9)]]:[["Vuelta",L]];
+function gRabbit(r){const L=hs(r),halves=r.n===18?[["Ida",L.slice(0,9)],["Vuelta",L.slice(9)]]:[[r.start===0?"Ida":"Vuelta",L]];
   const lines=halves.map(([lab,l])=>{let holder=null,fin=true;for(const h of l){if(!comp(r,h)){fin=false;break}const w=lowWinner(r,h);if(w>=0)holder=w}
     return[lab+(fin?"":" (en juego)"),holder==null?"Nadie":nm(r,holder)]});
   return{res:lines.map(x=>`${x[0].split(" ")[0]}: ${x[1]}`).join(" · "),lines:[]}}
@@ -604,17 +604,19 @@ function stbl(s,par){return Math.max(0,2-(s-par))}
 function gStableford(r){const t=ids(r).map(p=>{let s=0;hs(r).forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return{p,s}}).sort((a,b)=>b.s-a.s);
   return{res:t[0].s?`Lidera ${t.filter(x=>x.s===t[0].s).map(x=>nm(r,x.p)).join(" y ")} con ${t[0].s}`:"Sin puntos todavía",lines:t.map(x=>[nm(r,x.p),x.s+" pts"])}}
 // Si el juego se puede jugar con n jugadores y equipos de a y b; si no, el motivo
-function gameOk(k,n,a,b){
-  if(k==="wolf"||k==="sixes")return n===4?"":"necesita 4 jugadores";
+function gameOk(k,n,a,b,holes){
+  if(k==="wolf")return n===4?"":"necesita 4 jugadores";
+  if(k==="sixes")return n!==4?"necesita 4 jugadores":holes&&holes!==18?"necesita 18 hoyos":"";
   if(k==="nines")return n===3?"":"necesita 3 jugadores";
   if(k==="vegas")return a===2&&b===2?"":"necesita 2 parejas";
-  if(k==="rr"||k==="acey")return n>=3?"":"necesita 3 o más";
-  // Mejor pelota: equipos del mismo tamaño (1 contra 1 es match play individual)
-  if(k==="fourball"||k==="nassau")return a&&b?(a===b?"":"necesita equipos del mismo tamaño"):"necesita 2 equipos";
+  if(k==="acey")return n>=3?"":"necesita 3 o más";
+  // Four-ball es de parejas (1 contra 1 es Match play individual); Nassau también se juega mano a mano
+  if(k==="fourball")return a>=2&&a===b?"":"necesita 2 parejas o equipos iguales";
+  if(k==="nassau")return holes&&holes!==18?"necesita 18 hoyos":a&&b?(a===b?"":"necesita equipos del mismo tamaño"):"necesita 2 equipos";
   // Suman o comparan los dos scores de cada equipo: hacen falta parejas (o equipos iguales más grandes)
   if(k==="bba"||k==="lowhigh"||k==="scotch")return a>=2&&a===b?"":"necesita 2 parejas o equipos iguales";
   return n>=2?"":"necesita 2 o más"}
-const okR=(k,r)=>!gameOk(k,r.players.length,r.teams[0].length,r.teams[1].length);
+const okR=(k,r)=>!gameOk(k,r.players.length,r.teams[0].length,r.teams[1].length,r.n);
 /* ---------- juegos nuevos ---------- */
 // Puntos por hoyo para cada jugador: f(r,h,st) devuelve un número por jugador (null = ese hoyo no cuenta); st guarda estado entre hoyos
 const gir=(x,par)=>x.s!=null&&x.p!=null&&x.s-x.p<=par-2;
@@ -725,6 +727,7 @@ const GCH={
  bba:r=>{const[A,B]=r.teams,l=doneH(r);let d=0;const v=l.map(h=>{const x=best(r,h,A),y=best(r,h,B),s=sum(r,h,A),t=sum(r,h,B);d+=(x<y)-(y<x)+(s<t)-(t<s);return d});
    return chBars(hl(l),v,"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Diferencia de puntos acumulada")},
  stab2:chPH("stab2"),nines:chPH("nines"),acey:chPH("acey"),chairman:chPH("chairman"),fidget:chPH("fidget"),garbage:chPH("garbage"),greenies:chPH("greenies"),bbb:chPH("bbb"),
+ rr:r=>{if(r.players.length!==2)return"";const l=doneH(r);return chBars(hl(l),cumMatch(l,h=>sc(r,h,0),h=>sc(r,h,1)),"Arriba "+nm(r,0),"Arriba "+nm(r,1),"Estado del partido hoyo a hoyo")},
  lowhigh:chTH("lowhigh"),scotch:chTH("scotch"),
  stableford:r=>{const L=hs(r);let k=-1;L.forEach((h,i)=>{if(r.d[h].some(x=>x.s!=null))k=i});if(k<0)return"";const l=L.slice(0,k+1);
    return chLines(hl(l),playerSer(r,l,(h,p)=>{const s=sc(r,h,p);return s==null?null:stbl(s,PP(r,p)[h])},x=>x+" pts",true),"Puntos Stableford acumulados")}};
@@ -772,7 +775,8 @@ const pct=(a,b)=>b?Math.round(a/b*100)+"%":"–";
 
 /* ---------- estado ---------- */
 let S;
-function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&Array.isArray(j.rounds))return j}catch(e){}
+const migrate=r=>{if(r.games&&r.games.fourball&&r.teams&&r.teams.every(t=>t.length===1)&&!("rr"in r.games))r.games.rr=true;return r};
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&Array.isArray(j.rounds)){j.rounds.forEach(migrate);return j}}catch(e){}
   return{rounds:[],cur:null,view:"rounds",statsP:0}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const R=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
@@ -825,7 +829,7 @@ const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mos
 function vGames(r){const m=r&&S.gamesMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("gmode",m):""}${m==="round"?vGamesRound(r):vGamesHist()}</div>`}
 function vStats(r){const m=r&&S.statsMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("smode",m):""}${m==="round"?vStatsRound(r):vStatsHist()}</div>`}
 function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r));if(!on.length)return`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
-  const solo=r.teams.every(x=>x.length===1);return`<div class="stack">${on.map(([k,t0,rule])=>{const t=solo&&k==="fourball"?"Match play":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
+  return`<div class="stack">${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
    <p class="g-res">${esc(g.res)}</p>${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
 function vStatsRound(r){const p=Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
@@ -836,7 +840,7 @@ function vStatsRound(r){const p=Math.min(S.statsP||0,r.players.length-1),o=stats
   <div class="label">Comparación del grupo</div>
   <div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Jugador</th><th>Score</th><th>FW</th><th>GIR</th><th>Putts/h</th></tr></thead><tbody>${grp}</tbody></table></div>
   <div class="tile"><div class="label">Sobre par, hoyo a hoyo</div><div class="chartwrap">${chToPar(r)}</div></div>
-  ${r.teams[0].length&&r.teams[1].length&&doneH(r).length?`<div class="tile"><div class="label">${r.teams.every(x=>x.length===1)?"Match play":"Four-ball"}, hoyo a hoyo</div><div class="chartwrap">${chFourball(r)}</div></div>`:""}
+  ${doneH(r).length&&(okR("fourball",r)||r.players.length===2)?`<div class="tile"><div class="label">${okR("fourball",r)?"Four-ball":"Match play"}, hoyo a hoyo</div><div class="chartwrap">${okR("fourball",r)?chFourball(r):GCH.rr(r)}</div></div>`:""}
   ${vHcp(nm(r,p),r.me===p)}</div>`}
 const tile=(lab,big,sub,bar)=>`<div class="tile"><div class="label">${lab}</div><div class="big">${big}</div><div class="sub">${sub}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:""}</div>`;
 // Fairways, GIR, putts, bunkers, distribución y promedio por tipo de hoyo (los dos primeros tiles los pone quien llama)
@@ -982,9 +986,9 @@ function vSetup(){if(!ui.draft)ui.draft=makeDraft();const d=ui.draft,n=d.players
    <div class="seg"><button type="button" data-a="pme" data-v="${i}" aria-pressed="${!!p.me}" aria-label="Soy ${esc(p.name||"el jugador "+(i+1))}">Yo</button></div>
    <button type="button" class="btn small" data-a="pdel" data-v="${i}" ${n<=1?"disabled":""} aria-label="Quitar jugador ${i+1}">✕</button></div>`).join("")}</div>
   ${n<MAXP?`<button type="button" class="btn" data-a="padd">+ Agregar jugador</button>`:`<p class="note">Máximo ${MAXP} jugadores.</p>`}
-  <div class="label">Juegos</div><div class="checks">${GAMES.map(([k,t,rule])=>{const why=gameOk(k,n,A,B);return`${GGROUP[k]?`<div class="ghead">${GGROUP[k]}</div>`:""}<label class="check${why?" off":""}"><input type="checkbox" id="su-g-${k}" ${!why&&d.games[k]?"checked":""} ${why?"disabled":""}><span>${t}${why?`<br><small class="muted">${why}</small>`:""}</span><button type="button" class="qbtn" data-a="rule" data-v="${k}" aria-expanded="${ui.rule===k}" aria-label="Cómo se juega ${t}">?</button></label>${ui.rule===k?`<p class="ruletip"><b>${t}.</b> ${rule}</p>`:""}`}).join("")}</div>
+  <div class="label">Juegos</div><div class="checks">${GAMES.map(([k,t,rule])=>{const why=gameOk(k,n,A,B,d.holes==="18"?18:9);return`${GGROUP[k]?`<div class="ghead">${GGROUP[k]}</div>`:""}<label class="check${why?" off":""}"><input type="checkbox" id="su-g-${k}" ${!why&&d.games[k]?"checked":""} ${why?"disabled":""}><span>${t}${why?`<br><small class="muted">${why}</small>`:""}</span><button type="button" class="qbtn" data-a="rule" data-v="${k}" aria-expanded="${ui.rule===k}" aria-label="Cómo se juega ${t}">?</button></label>${ui.rule===k?`<p class="ruletip"><b>${t}.</b> ${rule}</p>`:""}`}).join("")}</div>
   <p class="note">El círculo de color es la salida de cada uno: tocalo para cambiarla. Cada jugador se compara con el par de su salida.</p>
-  <p class="note">Los juegos por equipos usan la mejor pelota de cada equipo, así que también sirven para un mano a mano (1 contra 1). El lobo rota según el orden de los jugadores.</p>
+  <p class="note">Four-ball y los juegos por parejas necesitan equipos del mismo tamaño. Para un mano a mano, Match play individual o Nassau. Wolf y Sixes arman las parejas según el orden de los jugadores.</p>
   ${ui.setupErr?`<p class="err">${esc(ui.setupErr)}</p>`:""}
   ${d.edit?'<p class="note">Si quitás un jugador se borran sus scores de esta vuelta.</p>':""}<button class="btn primary" type="submit">${d.edit?"Guardar cambios":"Empezar vuelta"}</button></form>`}
 
@@ -1009,7 +1013,7 @@ function cleanShared(o){if(!o||o.v!==1)throw 0;
   const teams=[0,1].map(t=>Array.isArray(o.teams)&&Array.isArray(o.teams[t])?[...new Set(o.teams[t].filter(ok))]:[]);
   const d=Array.from({length:18},(_,h)=>players.map((_,p)=>{const c=Array.isArray(o.d)&&Array.isArray(o.d[h])&&Array.isArray(o.d[h][p])?o.d[h][p]:[];
     return{s:int(c[0],1,15),p:int(c[1],0,6),fw:["c","l","r"].includes(c[2])?c[2]:null,pen:int(c[3],0,6)||0,bk:c[4]===1}}));
-  const games={};GAMES.forEach(([k])=>games[k]=Array.isArray(o.games)&&o.games.includes(k));
+  const games={};GAMES.forEach(([k])=>games[k]=Array.isArray(o.games)&&o.games.includes(k));if(games.fourball&&teams.every(t=>t.length===1))games.rr=true;
   const wolf={};if(o.wolf&&typeof o.wolf==="object")Object.entries(o.wolf).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(v==="lone"||v==="blind"||ok(v)))wolf[k]=v});
   const bbb={},grn={};
   if(o.bbb&&typeof o.bbb==="object")Object.entries(o.bbb).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&Array.isArray(v))bbb[k]=[0,1,2].map(i=>ok(v[i])?v[i]:null)});
@@ -1098,7 +1102,7 @@ function onSubmit(e){if(e.target.id!=="setup")return;e.preventDefault();readDraf
   const A=[],B=[];d.players.forEach((p,i)=>(p.team==="A"?A:B).push(i));
   const me=d.players.findIndex(p=>p.me),meI=me<0?null:me;
   const tees=d.players.map(p=>p.tee||d.tee),tee=tees.slice().sort((a,b)=>tees.filter(x=>x===b).length-tees.filter(x=>x===a).length)[0];if(meI!=null)S.meName=players[meI];S.statsP=meI||0;
-  const games={};GAMES.forEach(([k])=>games[k]=!!d.games[k]&&!gameOk(k,players.length,A.length,B.length));
+  const games={};GAMES.forEach(([k])=>games[k]=!!d.games[k]&&!gameOk(k,players.length,A.length,B.length,d.holes==="18"?18:9));
   if(d.edit){const r=S.rounds.find(x=>x.id===d.edit);if(r){const old=r.d;
     r.d=Array.from({length:18},(_,h)=>d.players.map(p=>p.orig!=null&&old[h][p.orig]?old[h][p.orig]:{s:null,p:null,fw:null,pen:0,bk:false}));
     if(!(d.players.length===r.players.length&&d.players.every((p,i)=>p.orig===i))){r.wolf={};r.bbb={};r.grn={}}
@@ -1107,6 +1111,7 @@ function onSubmit(e){if(e.target.id!=="setup")return;e.preventDefault();readDraf
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.tee=tee;r.tees=tees;r.me=meI;
   S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0)}
 function onChange(e){if(e.target.id==="themesel"){S.theme=e.target.value;save();render();return}
+  if(e.target.id==="su-holes"&&ui.draft){readDraft();render();return}
   if(e.target.id==="su-tee"&&ui.draft){readDraft();ui.draft.players.forEach(q=>q.tee=ui.draft.tee);render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
 function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();
