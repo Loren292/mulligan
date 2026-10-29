@@ -161,6 +161,8 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .p-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .p-name{font-weight:600;font-size:18px}
 .p-tot{font-size:13px;color:var(--muted)}
+.pcard.gone{opacity:.75}.pcard.gone .btn{margin-top:8px}
+.quit{display:block;margin:8px 0 0 auto;background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline}
 .score-row{display:flex;align-items:center;gap:10px}
 .step{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .step button{width:46px;height:46px;border:0;background:var(--sunk);font-size:24px;font-weight:600}
@@ -748,7 +750,7 @@ const MAP="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBw
 const GAMES=[
  ["medal","Medal","Gana quien suma menos golpes en la vuelta."],
  ["stableford","Stableford","Doble bogey o peor 0, bogey 1, par 2, birdie 3, águila 4. Gana quien sume más."],
- ["stab2","Stableford modificado","Como el Stableford pero premia arriesgar (el del PGA Tour): albatros 8, águila 5, birdie 2, par 0, bogey −1, doble bogey o peor −3. Gana quien sume más."],
+ ["stab2","Stableford modificado","Como el Stableford pero premia arriesgar (el del PGA Tour): albatros 8, águila 5, birdie 2, par 0, bogey −1, doble bogey o peor −3. Gana quien sume más. Si alguien abandona, cada hoyo que no jugó le vale −3."],
  ["fourball","Four-ball match play","Cuenta la mejor pelota de cada pareja y se gana por hoyos. Termina cuando la ventaja supera los hoyos que quedan."],
  ["nassau","Nassau","Tres partidos de match play a la vez: ida, vuelta y total. Cada uno vale un punto. Se juega mano a mano o por parejas con la mejor pelota."],
  ["rr","Match play individual","Cada uno con su pelota, se gana por hoyos y termina cuando la ventaja supera los hoyos que quedan. Con 3 o más, cada jugador juega un partido contra cada uno de los demás a la vez: ganar vale 1 punto y empatar, medio."],
@@ -782,21 +784,41 @@ function newRound(o){return{id:"r"+Date.now()+Math.floor(Math.random()*1000),dat
 const ids=r=>r.players.map((_,i)=>i);
 const hs=r=>Array.from({length:r.n},(_,i)=>r.start+i);
 const sc=(r,h,p)=>r.d[h][p].s;
-const comp=(r,h)=>r.d[h].every(x=>x.s!=null);
+// Abandono (D4): r.out[p] es el hoyo que el jugador no terminó; desde ahí no juega más
+const outH=(r,p)=>r.out&&r.out[p]!=null?r.out[p]:null;
+const inPlay=(r,h,p)=>{const o=outH(r,p);return o==null||h<o};
+// Hoyo desde el que quedan menos de k jugadores (Infinity si nunca)
+const cutN=(r,k)=>{const o=ids(r).map(p=>outH(r,p)).filter(x=>x!=null).sort((a,b)=>a-b),i=r.players.length-k;return i>=0&&i<o.length?o[i]:Infinity};
+// Hoyo en que un equipo se queda sin nadie y concede; null si alguno sigue
+const outT=(r,t)=>t.every(p=>outH(r,p)!=null)?Math.max(...t.map(p=>outH(r,p))):null;
+// Un hoyo está completo cuando tienen score todos los que siguen jugando
+const comp=(r,h)=>r.d[h].every((x,p)=>x.s!=null||!inPlay(r,h,p));
 const nm=(r,i)=>r.players[i];
 const tn=(r,t)=>t.map(i=>r.players[i]).join("/");
-const best=(r,h,t)=>Math.min(...t.map(p=>sc(r,h,p)));
+// Mejor pelota: si un compañero abandonó, cuenta el que sigue
+const best=(r,h,t)=>Math.min(...t.filter(p=>sc(r,h,p)!=null).map(p=>sc(r,h,p)));
 const sum=(r,h,t)=>t.reduce((a,p)=>a+sc(r,h,p),0);
-function lowWinner(r,h){const s=r.d[h].map(x=>x.s),m=Math.min(...s);return s.filter(x=>x===m).length===1?s.indexOf(m):-1}
+function lowWinner(r,h){const s=r.d[h].map(x=>x.s),v=s.filter(x=>x!=null),m=Math.min(...v);return v.filter(x=>x===m).length===1?s.indexOf(m):-1}
+// Juegos que se cortan cuando quedan menos jugadores de los que necesitan: "all" = todos
+const GCUT={vegas:"all",bba:"all",lowhigh:"all",scotch:"all",wolf:"all",nines:"all",acey:3,skins:2,rabbit:2,chairman:2,fidget:2};
+const gcut=(r,k)=>GCUT[k]==null?Infinity:cutN(r,GCUT[k]==="all"?r.players.length:GCUT[k]);
+// Ganadores para el historial: los que tienen el máximo (o el mínimo); si empatan todos, nadie
+function topOf(v,hi){const m=hi?Math.max(...v):Math.min(...v);if(v.every(x=>x===m))return[];return v.map((x,p)=>x===m?p:-1).filter(p=>p>=0)}
+const teamOf=(r,x)=>x>0?r.teams[0]:x<0?r.teams[1]:[];
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function toPar(n){return n===0?"E":(n>0?"+":"")+n}
 function relName(d){return d<=-3?"Albatros":d===-2?"Águila":d===-1?"Birdie":d===0?"Par":d===1?"Bogey":d===2?"Doble":d===3?"Triple":d===4?"Cuádruple":"+"+d}
 
-function matchPlay(r,list,fa,fb,na,nb){
-  let st=0,pl=0,closed=null;
-  for(let i=0;i<list.length;i++){const h=list[i];if(!comp(r,h))break;const a=fa(h),b=fb(h);
+// qa, qb: hoyo en que cada lado abandona. Abandonar es conceder: si el partido no estaba definido, lo gana el otro
+function matchPlay(r,list,fa,fb,na,nb,qa=null,qb=null){
+  let st=0,pl=0,closed=null,gave=null;
+  for(let i=0;i<list.length;i++){const h=list[i],ga=qa!=null&&h>=qa,gb=qb!=null&&h>=qb;
+    if(ga||gb){if(!closed&&ga!==gb)gave={a:ga,h:ga?qa:qb};break}
+    if(!comp(r,h))break;const a=fa(h),b=fb(h);
     if(a<b)st++;else if(b<a)st--;pl++;const left=list.length-pl;
     if(!closed&&Math.abs(st)>left)closed={st,left}}
+  if(gave)return{st,pl,winner:gave.a?1:0,done:true,
+    txt:`${gave.a?nb:na} gana por abandono de ${gave.a?na:nb} en el hoyo ${gave.h+1}`+(pl?` (${st===0?"iban empatados":`${st>0?na:nb} iba ${Math.abs(st)} arriba`})`:"")};
   const rem=list.length-pl,fin=closed||(rem===0?{st,left:0}:null);let txt,winner=null;
   if(fin){winner=fin.st>0?0:fin.st<0?1:-1;
     txt=fin.st===0?"All square":fin.left>0?`${fin.st>0?na:nb} gana ${Math.abs(fin.st)} & ${fin.left}`:`${fin.st>0?na:nb} gana ${Math.abs(fin.st)} arriba`}
@@ -805,64 +827,74 @@ function matchPlay(r,list,fa,fb,na,nb){
   return{st,pl,txt,winner,done:!!fin}}
 
 /* ---------- juegos ---------- */
-function gMedal(r){const t=ids(r).map(p=>{let s=0,par=0,n=0;hs(r).forEach(h=>{const v=sc(r,h,p);if(v!=null){s+=v;par+=PP(r,p)[h];n++}});return{p,s,tp:s-par,n}});
-  const played=t.filter(x=>x.n>0).sort((a,b)=>a.tp-b.tp||a.s-b.s);
-  if(!played.length)return{res:"Sin scores todavía",lines:[]};
+// Cada juego devuelve res y lines para la vuelta, y ev para el historial: [{pl: quiénes jugaron, w: ganadores, l: perdedores}]
+// Quien abandona queda fuera de la clasificación del medal (D4)
+function gMedal(r){const t=ids(r).map(p=>{let s=0,par=0,n=0;hs(r).forEach(h=>{const v=sc(r,h,p);if(v!=null){s+=v;par+=PP(r,p)[h];n++}});return{p,s,tp:s-par,n,o:outH(r,p)}});
+  const fin=t.filter(x=>x.o==null),played=fin.filter(x=>x.n>0).sort((a,b)=>a.tp-b.tp||a.s-b.s),gone=t.filter(x=>x.o!=null);
+  const lines=[...played.map(x=>[nm(r,x.p),`${x.s} (${toPar(x.tp)}) · ${x.n} h`]),...gone.map(x=>[nm(r,x.p),`abandonó en el hoyo ${x.o+1}`+(x.n?` · ${x.s} (${toPar(x.tp)}) en ${x.n} h`:"")])];
+  const m=fin.length&&fin.every(x=>x.n===r.n)?Math.min(...fin.map(x=>x.tp)):null;
+  const ev=m==null?[]:[{pl:ids(r),w:fin.every(x=>x.tp===m)?[]:fin.filter(x=>x.tp===m).map(x=>x.p)}];
+  if(!played.length)return{res:gone.length&&!fin.length?"Abandonaron todos":"Sin scores todavía",lines,ev};
   const lead=played.filter(x=>x.tp===played[0].tp).map(x=>nm(r,x.p)).join(" y ");
-  return{res:`Lidera ${lead} (${toPar(played[0].tp)})`,lines:played.map(x=>[nm(r,x.p),`${x.s} (${toPar(x.tp)}) · ${x.n} h`])}}
-function gFourball(r){const[A,B]=r.teams;const m=matchPlay(r,hs(r),h=>best(r,h,A),h=>best(r,h,B),tn(r,A),tn(r,B));return{res:m.txt,lines:[]}}
-function gNassau(r){const[A,B]=r.teams,L=hs(r),fa=h=>best(r,h,A),fb=h=>best(r,h,B),na=tn(r,A),nb=tn(r,B);
+  return{res:`Lidera ${lead} (${toPar(played[0].tp)})`,lines,ev}}
+function gFourball(r){const[A,B]=r.teams;const m=matchPlay(r,hs(r),h=>best(r,h,A),h=>best(r,h,B),tn(r,A),tn(r,B),outT(r,A),outT(r,B));
+  return{res:m.txt,lines:[],ev:m.done?[{pl:[...A,...B],w:m.winner===0?A:m.winner===1?B:[]}]:[]}}
+function gNassau(r){const[A,B]=r.teams,L=hs(r),fa=h=>best(r,h,A),fb=h=>best(r,h,B),na=tn(r,A),nb=tn(r,B),qa=outT(r,A),qb=outT(r,B);
   const parts=r.n===18?[["Ida",L.slice(0,9)],["Vuelta",L.slice(9)],["Total",L]]:[["Total",L]];
-  const pts=[0,0];const lines=parts.map(([lab,l])=>{const m=matchPlay(r,l,fa,fb,na,nb);if(m.done){if(m.winner===0)pts[0]++;else if(m.winner===1)pts[1]++;else{pts[0]+=.5;pts[1]+=.5}}return[lab,m.txt]});
-  return{res:`${na} ${fmtPt(pts[0])} – ${fmtPt(pts[1])} ${nb}`,lines}}
+  const pts=[0,0],won=[0,0];const lines=parts.map(([lab,l])=>{const m=matchPlay(r,l,fa,fb,na,nb,qa,qb);if(m.done){if(m.winner===0){pts[0]++;won[0]++}else if(m.winner===1){pts[1]++;won[1]++}else{pts[0]+=.5;pts[1]+=.5}}return[lab,m.txt]});
+  return{res:`${na} ${fmtPt(pts[0])} – ${fmtPt(pts[1])} ${nb}`,lines,ev:[{pl:[...A,...B],w:teamOf(r,won[0]-won[1])}]}}
 function fmtPt(x){return Number.isInteger(x)?String(x):x.toFixed(1).replace(".",",")}
-function gSkins(r){let carry=0;const won=r.players.map(()=>0);let last=null;
-  for(const h of hs(r)){if(!comp(r,h))break;carry++;const w=lowWinner(r,h);if(w>=0){won[w]+=carry;carry=0}last=h}
+function gSkins(r){let carry=0;const won=r.players.map(()=>0),cut=gcut(r,"skins");let last=null;
+  for(const h of hs(r)){if(!comp(r,h)||h>=cut)break;carry++;const w=lowWinner(r,h);if(w>=0){won[w]+=carry;carry=0}last=h}
   const order=ids(r).sort((a,b)=>won[b]-won[a]);
   const lines=order.map(p=>[nm(r,p),won[p]+" skin"+(won[p]===1?"":"s")]);
-  if(carry)lines.push([last===hs(r)[r.n-1]?"Sin dueño":"Acumulado en juego",carry]);
-  const top=won[order[0]];return{res:top?`Lidera ${order.filter(p=>won[p]===top).map(p=>nm(r,p)).join(" y ")} con ${top}`:"Sin skins ganados todavía",lines}}
+  if(carry)lines.push([last===hs(r)[r.n-1]||last+1===cut?"Sin dueño":"Acumulado en juego",carry]);
+  const top=won[order[0]];return{res:top?`Lidera ${order.filter(p=>won[p]===top).map(p=>nm(r,p)).join(" y ")} con ${top}`:"Sin skins ganados todavía",lines,
+    ev:[{pl:ids(r),w:won.some(x=>x)?topOf(won,true):[]}]}}
 function gSixes(r){const[a,b,c,d]=[0,1,2,3],seg=r.n/3,L=hs(r);
-  const pairs=[[[a,b],[c,d]],[[a,c],[b,d]],[[a,d],[b,c]]];const pts=[0,0,0,0];
-  const lines=pairs.map(([A,B],i)=>{const l=L.slice(i*seg,(i+1)*seg);const m=matchPlay(r,l,h=>best(r,h,A),h=>best(r,h,B),tn(r,A),tn(r,B));
-    if(m.done){if(m.winner===0)A.forEach(p=>pts[p]++);else if(m.winner===1)B.forEach(p=>pts[p]++);else[...A,...B].forEach(p=>pts[p]+=.5)}
+  const pairs=[[[a,b],[c,d]],[[a,c],[b,d]],[[a,d],[b,c]]];const pts=[0,0,0,0],won=[0,0,0,0];
+  const lines=pairs.map(([A,B],i)=>{const l=L.slice(i*seg,(i+1)*seg);const m=matchPlay(r,l,h=>best(r,h,A),h=>best(r,h,B),tn(r,A),tn(r,B),outT(r,A),outT(r,B));
+    if(m.done){if(m.winner===0)A.forEach(p=>{pts[p]++;won[p]++});else if(m.winner===1)B.forEach(p=>{pts[p]++;won[p]++});else[...A,...B].forEach(p=>pts[p]+=.5)}
     return[`H${l[0]+1}–${l[l.length-1]+1}: ${tn(r,A)} vs ${tn(r,B)}`,m.txt]});
   const top=Math.max(...pts);const leaders=ids(r).filter(p=>pts[p]===top);
   lines.push(["Tramos ganados",ids(r).map(p=>`${nm(r,p)} ${fmtPt(pts[p])}`).join(" · ")]);
-  return{res:top?`${leaders.length>1?"Empate":"Gana"} ${leaders.map(p=>nm(r,p)).join(", ")} (${fmtPt(top)})`:"Sin tramos terminados",lines}}
+  return{res:top?`${leaders.length>1?"Empate":"Gana"} ${leaders.map(p=>nm(r,p)).join(", ")} (${fmtPt(top)})`:"Sin tramos terminados",lines,ev:[{pl:ids(r),w:topOf(won,true)}]}}
 function vnum(x,y,flip){const lo=Math.min(x,y),hi=Math.max(x,y);return(hi>=10||flip)?hi*10+lo:lo*10+hi}
-function gVegas(r){const[A,B]=r.teams;let pts=0,n=0;
-  for(const h of hs(r)){if(!comp(r,h))break;
+function gVegas(r){const[A,B]=r.teams,cut=gcut(r,"vegas");let pts=0,n=0;
+  for(const h of hs(r)){if(!comp(r,h)||h>=cut)break;
     const bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);
     const vA=vnum(sc(r,h,A[0]),sc(r,h,A[1]),bB&&!bA),vB=vnum(sc(r,h,B[0]),sc(r,h,B[1]),bA&&!bB);pts+=vB-vA;n++}
-  if(!n)return{res:"Sin hoyos completos",lines:[]};
-  return{res:pts===0?"Empatados":`${pts>0?tn(r,A):tn(r,B)} +${Math.abs(pts)}`,lines:[["Hoyos jugados",n]]}}
-function gWolf(r){const pts=[0,0,0,0],L=hs(r);let missing=0;
-  L.forEach((h,k)=>{if(!comp(r,h))return;const w=k%4,dec=r.wolf[h];if(dec==null){missing++;return}
+  if(!n)return{res:"Sin hoyos completos",lines:[],ev:[]};
+  return{res:pts===0?"Empatados":`${pts>0?tn(r,A):tn(r,B)} +${Math.abs(pts)}`,lines:[["Hoyos jugados",n]],ev:[{pl:[...A,...B],w:teamOf(r,pts)}]}}
+function gWolf(r){const pts=[0,0,0,0],L=hs(r),cut=gcut(r,"wolf");let missing=0,any=false;
+  L.forEach((h,k)=>{if(!comp(r,h)||h>=cut)return;const w=k%4,dec=r.wolf[h];if(dec==null){missing++;return}any=true;
     const others=ids(r).filter(p=>p!==w);
     if(typeof dec==="number"){const A=[w,dec],B=others.filter(p=>p!==dec);const a=best(r,h,A),b=best(r,h,B);
       if(a<b)A.forEach(p=>pts[p]++);else if(b<a)B.forEach(p=>pts[p]++)}
     else{const a=sc(r,h,w),b=best(r,h,others);if(a<b)pts[w]+=dec==="blind"?6:4;else if(b<a)others.forEach(p=>pts[p]++)}});
   const order=ids(r).sort((x,y)=>pts[y]-pts[x]);const lines=order.map(p=>[nm(r,p),pts[p]+" pts"]);
   if(missing)lines.push(["Hoyos sin decisión del lobo",missing]);
-  const top=pts[order[0]];return{res:top?`Lidera ${order.filter(p=>pts[p]===top).map(p=>nm(r,p)).join(" y ")} con ${top}`:missing?"Cargá quién eligió el lobo en cada hoyo":"Sin puntos todavía",lines}}
+  const top=pts[order[0]];return{res:top?`Lidera ${order.filter(p=>pts[p]===top).map(p=>nm(r,p)).join(" y ")} con ${top}`:missing?"Cargá quién eligió el lobo en cada hoyo":"Sin puntos todavía",lines,
+    ev:any?[{pl:ids(r),w:topOf(pts,true)}]:[]}}
 function gRabbit(r){const L=hs(r),halves=r.n===18?[["Ida",L.slice(0,9)],["Vuelta",L.slice(9)]]:[[r.start===0?"Ida":"Vuelta",L]];
-  const lines=halves.map(([lab,l])=>{let holder=null,fin=true;for(const h of l){if(!comp(r,h)){fin=false;break}const w=lowWinner(r,h);if(w>=0)holder=w}
-    return[lab+(fin?"":" (en juego)"),holder==null?"Nadie":nm(r,holder)]});
-  return{res:lines.map(x=>`${x[0].split(" ")[0]}: ${x[1]}`).join(" · "),lines:[]}}
+  const cut=gcut(r,"rabbit"),hd=[];
+  const lines=halves.map(([lab,l])=>{let holder=null,st="";for(const h of l){if(h>=cut){st=" (hasta el abandono)";break}if(!comp(r,h)){st=" (en juego)";break}const w=lowWinner(r,h);if(w>=0)holder=w}
+    hd.push(holder);return[lab+st,holder==null?"Nadie":nm(r,holder)]});
+  return{res:lines.map(x=>`${x[0].split(" ")[0]}: ${x[1]}`).join(" · "),lines:[],ev:hd.map(x=>({pl:ids(r),w:x==null?[]:[x]}))}}
 function gSnake(r){let holder=null,any=false;const tp=r.players.map(()=>0);
   for(const h of hs(r)){const ps=r.d[h].map(x=>x.p);if(ps.every(x=>x==null))continue;any=true;
     let mx=0,who=null;ps.forEach((v,p)=>{if(v!=null&&v>=3){tp[p]++;if(v>=mx){mx=v;who=p}}});if(who!=null)holder=who}
-  if(!any)return{res:"Cargá los putts para jugar Snake",lines:[]};
-  return{res:holder==null?"Nadie tiene la víbora":`La víbora la tiene ${nm(r,holder)}`,lines:ids(r).map(p=>[nm(r,p),tp[p]+" tres putts"])}}
-function gBBA(r){const[A,B]=r.teams;let a=0,b=0,n=0;
-  for(const h of hs(r)){if(!comp(r,h))break;const x=best(r,h,A),y=best(r,h,B);if(x<y)a++;else if(y<x)b++;
+  if(!any)return{res:"Cargá los putts para jugar Snake",lines:[],ev:[]};
+  return{res:holder==null?"Nadie tiene la víbora":`La víbora la tiene ${nm(r,holder)}`,lines:ids(r).map(p=>[nm(r,p),tp[p]+" tres putts"]),ev:[{pl:ids(r),w:[],l:holder==null?[]:[holder]}]}}
+function gBBA(r){const[A,B]=r.teams,cut=gcut(r,"bba");let a=0,b=0,n=0;
+  for(const h of hs(r)){if(!comp(r,h)||h>=cut)break;const x=best(r,h,A),y=best(r,h,B);if(x<y)a++;else if(y<x)b++;
     const s=sum(r,h,A),t=sum(r,h,B);if(s<t)a++;else if(t<s)b++;n++}
-  if(!n)return{res:"Sin hoyos completos",lines:[]};
-  return{res:`${tn(r,A)} ${a} – ${b} ${tn(r,B)}`,lines:[]}}
+  if(!n)return{res:"Sin hoyos completos",lines:[],ev:[]};
+  return{res:`${tn(r,A)} ${a} – ${b} ${tn(r,B)}`,lines:[],ev:[{pl:[...A,...B],w:teamOf(r,a-b)}]}}
 function stbl(s,par){return Math.max(0,2-(s-par))}
 function gStableford(r){const t=ids(r).map(p=>{let s=0;hs(r).forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return{p,s}}).sort((a,b)=>b.s-a.s);
-  return{res:t[0].s?`Lidera ${t.filter(x=>x.s===t[0].s).map(x=>nm(r,x.p)).join(" y ")} con ${t[0].s}`:"Sin puntos todavía",lines:t.map(x=>[nm(r,x.p),x.s+" pts"])}}
+  const v=ids(r).map(p=>t.find(x=>x.p===p).s);
+  return{res:t[0].s?`Lidera ${t.filter(x=>x.s===t[0].s).map(x=>nm(r,x.p)).join(" y ")} con ${t[0].s}`:"Sin puntos todavía",lines:t.map(x=>[nm(r,x.p),x.s+" pts"]),ev:[{pl:ids(r),w:topOf(v,true)}]}}
 // Si el juego se puede jugar con n jugadores y equipos de a y b; si no, el motivo
 function gameOk(k,n,a,b,holes){
   if(k==="wolf")return n===4?"":"necesita 4 jugadores";
@@ -881,13 +913,15 @@ const okR=(k,r)=>!gameOk(k,r.players.length,r.teams[0].length,r.teams[1].length,
 // Puntos por hoyo para cada jugador: f(r,h,st) devuelve un número por jugador (null = ese hoyo no cuenta); st guarda estado entre hoyos
 const gir=(x,par)=>x.s!=null&&x.p!=null&&x.s-x.p<=par-2;
 const PH={
- stab2:{f:(r,h)=>{const v=r.players.map((_,p)=>{const s=sc(r,h,p);if(s==null)return null;const d=s-PP(r,p)[h];return d<=-3?8:d===-2?5:d===-1?2:d===0?0:d===1?-1:-3});return v.some(x=>x!=null)?v:null}},
- nines:{f:(r,h)=>{if(!comp(r,h))return null;const s=r.d[h].map(x=>x.s),o=[...s].sort((a,b)=>a-b);
+ // quien abandonó suma −3 en cada hoyo que no jugó, para que abandonar nunca convenga (P2)
+ stab2:{f:(r,h)=>{if(!r.d[h].some(x=>x.s!=null))return null;return r.players.map((_,p)=>{const s=sc(r,h,p);if(s==null)return inPlay(r,h,p)?null:-3;const d=s-PP(r,p)[h];return d<=-3?8:d===-2?5:d===-1?2:d===0?0:d===1?-1:-3})}},
+ nines:{f:(r,h)=>{if(!comp(r,h)||h>=gcut(r,"nines"))return null;const s=r.d[h].map(x=>x.s),o=[...s].sort((a,b)=>a-b);
    if(o[0]===o[2])return[3,3,3];if(o[0]===o[1])return s.map(v=>v===o[0]?4:1);if(o[1]===o[2])return s.map(v=>v===o[0]?5:2);return s.map(v=>v===o[0]?5:v===o[1]?3:1)}},
- acey:{f:(r,h)=>{if(!comp(r,h))return null;const s=r.d[h].map(x=>x.s),n=s.length,uniq=m=>s.filter(v=>v===m).length===1?s.indexOf(m):-1,lo=uniq(Math.min(...s)),hi=uniq(Math.max(...s));
-   return s.map((_,p)=>(p===lo?n-1:lo>=0?-1:0)+(p===hi?1-n:hi>=0?1:0))}},
- chairman:{f:(r,h,st)=>{if(!comp(r,h))return null;const w=lowWinner(r,h),v=r.players.map(()=>0);if(w>=0){if(st.chair===w)v[w]=1;st.chair=w}return v}},
- fidget:{f:(r,h)=>{if(!comp(r,h))return null;const w=lowWinner(r,h);return r.players.map((_,p)=>p===w?1:0)}},
+ // Acey Deucey sigue con los que quedan; quien abandonó no paga ni cobra
+ acey:{f:(r,h)=>{if(!comp(r,h)||h>=gcut(r,"acey"))return null;const s=r.d[h].map(x=>x.s),v=s.filter(x=>x!=null),n=v.length,uniq=m=>v.filter(x=>x===m).length===1?s.indexOf(m):-1,lo=uniq(Math.min(...v)),hi=uniq(Math.max(...v));
+   return s.map((x,p)=>x==null?0:(p===lo?n-1:lo>=0?-1:0)+(p===hi?1-n:hi>=0?1:0))}},
+ chairman:{f:(r,h,st)=>{if(!comp(r,h)||h>=gcut(r,"chairman"))return null;const w=lowWinner(r,h),v=r.players.map(()=>0);if(w>=0){if(st.chair===w)v[w]=1;st.chair=w}return v}},
+ fidget:{f:(r,h)=>{if(!comp(r,h)||h>=gcut(r,"fidget"))return null;const w=lowWinner(r,h);return r.players.map((_,p)=>p===w?1:0)}},
  garbage:{f:(r,h)=>{const v=r.players.map((_,p)=>{const x=r.d[h][p],par=PP(r,p)[h];if(x.s==null)return null;const d=x.s-par;let n=d<=-3?3:d===-2?2:d===-1?1:0;
    if(x.bk&&x.s<=par)n++;if(par>=4&&x.s<=par&&x.fw){if(x.fw==="c"){if(gir(x,par))n++}else n++}if(x.p===0)n++;if(r.grn&&r.grn[h]===p&&x.s<=par)n++;return n});return v.some(x=>x!=null)?v:null}},
  greenies:{f:(r,h)=>{const g=r.grn&&r.grn[h];if(P(r)[h]!==3||g==null)return null;return r.players.map((_,p)=>p===g&&sc(r,h,p)!=null&&sc(r,h,p)<=PP(r,p)[h]?1:0)}},
@@ -895,11 +929,12 @@ const PH={
 function phRun(r,k){const st={},out=[];for(const h of hs(r)){const v=PH[k].f(r,h,st);if(v)out.push([h,v])}return out}
 const phTot=(r,run)=>r.players.map((_,p)=>run.reduce((a,[,v])=>a+(v[p]||0),0));
 function gPH(k){return r=>{const run=phRun(r,k);
-  if(!run.length)return{res:k==="greenies"?"Marcá el greenie en los par 3":k==="bbb"?"Marcá Bingo, Bango y Bongo en cada hoyo":"Sin hoyos todavía",lines:[]};
+  if(!run.length)return{res:k==="greenies"?"Marcá el greenie en los par 3":k==="bbb"?"Marcá Bingo, Bango y Bongo en cada hoyo":"Sin hoyos todavía",lines:[],ev:[]};
   const t=phTot(r,run),order=ids(r).sort((a,b)=>t[b]-t[a]);
-  if(k==="fidget"){const z=ids(r).filter(p=>!t[p]);return{res:z.length?`Sin ganar un hoyo: ${z.map(p=>nm(r,p)).join(", ")}`:"Todos ganaron al menos un hoyo",lines:order.map(p=>[nm(r,p),t[p]+" hoyo"+(t[p]===1?"":"s")+" ganado"+(t[p]===1?"":"s")])}}
+  if(k==="fidget"){const z=ids(r).filter(p=>!t[p]);return{res:z.length?`Sin ganar un hoyo: ${z.map(p=>nm(r,p)).join(", ")}`:"Todos ganaron al menos un hoyo",lines:order.map(p=>[nm(r,p),t[p]+" hoyo"+(t[p]===1?"":"s")+" ganado"+(t[p]===1?"":"s")]),
+    ev:[{pl:ids(r),w:[],l:z}]}}
   const top=t[order[0]],lead=order.filter(p=>t[p]===top);
-  return{res:lead.length===r.players.length?`Empatados en ${fmtPt(top)}`:`Lidera ${lead.map(p=>nm(r,p)).join(" y ")} con ${fmtPt(top)}`,lines:order.map(p=>[nm(r,p),fmtPt(t[p])+" pts"])}}}
+  return{res:lead.length===r.players.length?`Empatados en ${fmtPt(top)}`:`Lidera ${lead.map(p=>nm(r,p)).join(" y ")} con ${fmtPt(top)}`,lines:order.map(p=>[nm(r,p),fmtPt(t[p])+" pts"]),ev:[{pl:ids(r),w:topOf(t,true)}]}}}
 const chPH=k=>r=>{const run=phRun(r,k),m=new Map(run);if(!run.length)return"";const l=run.map(([h])=>h);
   return chLines(hl(l),playerSer(r,l,(h,p)=>m.get(h)[p],x=>fmtPt(x)+" pts",true),"Puntos acumulados")};
 // Puntos por hoyo entre las dos parejas: [pareja A, pareja B]
@@ -907,18 +942,19 @@ const TH={
  lowhigh:(r,h)=>{const[A,B]=r.teams,x=best(r,h,A),y=best(r,h,B),wa=Math.max(...A.map(p=>sc(r,h,p))),wb=Math.max(...B.map(p=>sc(r,h,p)));return[(x<y)+(wa<wb),(y<x)+(wb<wa)]},
  scotch:(r,h)=>{const[A,B]=r.teams,x=best(r,h,A),y=best(r,h,B),s1=sum(r,h,A),t=sum(r,h,B),bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);
    return[2*(x<y)+2*(s1<t)+(bA&&!bB),2*(y<x)+2*(t<s1)+(bB&&!bA)]}};
-const thRun=(r,k)=>doneH(r).map(h=>[h,TH[k](r,h)]);
-function gTH(k){return r=>{const run=thRun(r,k);if(!run.length)return{res:"Sin hoyos completos",lines:[]};const a=run.reduce((s,[,v])=>s+v[0],0),b=run.reduce((s,[,v])=>s+v[1],0);
-  return{res:`${tn(r,r.teams[0])} ${a} – ${b} ${tn(r,r.teams[1])}`,lines:[["Hoyos jugados",run.length]]}}}
+const thRun=(r,k)=>doneG(r,k).map(h=>[h,TH[k](r,h)]);
+function gTH(k){return r=>{const run=thRun(r,k);if(!run.length)return{res:"Sin hoyos completos",lines:[],ev:[]};const a=run.reduce((s,[,v])=>s+v[0],0),b=run.reduce((s,[,v])=>s+v[1],0);
+  return{res:`${tn(r,r.teams[0])} ${a} – ${b} ${tn(r,r.teams[1])}`,lines:[["Hoyos jugados",run.length]],ev:[{pl:[...r.teams[0],...r.teams[1]],w:teamOf(r,a-b)}]}}}
 const chTH=k=>r=>{const run=thRun(r,k);let d=0;return chBars(hl(run.map(([h])=>h)),run.map(([,v])=>d+=v[0]-v[1]),"Arriba "+tn(r,r.teams[0]),"Arriba "+tn(r,r.teams[1]),"Diferencia de puntos acumulada")};
 // Todos contra todos: un match play por cada par de jugadores
 function rrMatches(r){const out=[];for(let i=0;i<r.players.length;i++)for(let j=i+1;j<r.players.length;j++)
-  out.push({i,j,m:matchPlay(r,hs(r),h=>sc(r,h,i),h=>sc(r,h,j),nm(r,i),nm(r,j))});return out}
+  out.push({i,j,m:matchPlay(r,hs(r),h=>sc(r,h,i),h=>sc(r,h,j),nm(r,i),nm(r,j),outH(r,i),outH(r,j))});return out}
 function gRR(r){const ms=rrMatches(r),pts=r.players.map(()=>0);
   ms.forEach(({i,j,m})=>{if(!m.done)return;if(m.winner===0)pts[i]++;else if(m.winner===1)pts[j]++;else{pts[i]+=.5;pts[j]+=.5}});
   const order=ids(r).sort((a,b)=>pts[b]-pts[a]),top=pts[order[0]];
   return{res:ms.some(x=>x.m.done)?`Lidera ${order.filter(p=>pts[p]===top).map(p=>nm(r,p)).join(" y ")} con ${fmtPt(top)}`:"Ningún partido terminado todavía",
-    lines:[...order.map(p=>[nm(r,p),fmtPt(pts[p])+" pts"]),...ms.map(({i,j,m})=>[`${nm(r,i)} vs ${nm(r,j)}`,m.txt])]}}
+    lines:[...order.map(p=>[nm(r,p),fmtPt(pts[p])+" pts"]),...ms.map(({i,j,m})=>[`${nm(r,i)} vs ${nm(r,j)}`,m.txt])],
+    ev:ms.every(x=>x.m.done)?ms.map(({i,j,m})=>({pl:[i,j],w:m.winner===0?[i]:m.winner===1?[j]:[]})):[]}}
 const GFN={rr:gRR,stab2:gPH("stab2"),nines:gPH("nines"),acey:gPH("acey"),chairman:gPH("chairman"),fidget:gPH("fidget"),garbage:gPH("garbage"),greenies:gPH("greenies"),bbb:gPH("bbb"),lowhigh:gTH("lowhigh"),scotch:gTH("scotch"),
  medal:gMedal,fourball:gFourball,nassau:gNassau,skins:gSkins,sixes:gSixes,vegas:gVegas,wolf:gWolf,rabbit:gRabbit,snake:gSnake,bba:gBBA,stableford:gStableford};
 
@@ -955,39 +991,44 @@ function chStrip(r,xl,hold,label,seps){if(!xl.length)return"";const w=CW-CL-CR,b
   const who=[...new Set(hold.filter(p=>p!=null))];
   return(who.length?legBox(who.map(p=>[nm(r,p),`var(--c${p%8+1})`])):"")+s+`<text x="${CL-5}" y="41" text-anchor="end">Hoyo</text></svg>`}
 const doneH=r=>{const o=[];for(const h of hs(r)){if(!comp(r,h))break;o.push(h)}return o};
+// Los hoyos completos que cuenta el juego k: los que se cortan por abandono paran ahí
+const doneG=(r,k)=>doneH(r).filter(h=>h<gcut(r,k));
+// Para los partidos: hasta que un lado concede
+const doneM=(r,A,B)=>doneH(r).filter(h=>h<Math.min(outT(r,A)??Infinity,outT(r,B)??Infinity));
 const hl=l=>l.map(h=>h+1);
 function cumMatch(l,fa,fb){let st=0;return l.map(h=>{const a=fa(h),b=fb(h);if(a<b)st++;else if(b<a)st--;return st})}
 function playerSer(r,l,step,fmt,desc){return ids(r).map(p=>{let c=0;const v=l.map(h=>{const x=step(h,p);if(x==null)return null;c+=x;return c});
   const last=[...v].reverse().find(x=>x!=null);return{p,v,last,n:nm(r,p)+(last==null?"":" "+fmt(last)),c:pc(p),d:PD[p%8]}}).filter(s=>s.last!=null).sort((a,b)=>desc?b.last-a.last:a.last-b.last)}
 function chToPar(r){const L=hs(r);let k=-1;L.forEach((h,i)=>{if(r.d[h].some(x=>x.s!=null))k=i});if(k<0)return"";const l=L.slice(0,k+1);
   return chLines(hl(l),playerSer(r,l,(h,p)=>{const s=sc(r,h,p);return s==null?null:s-PP(r,p)[h]},toPar),"Golpes sobre el par acumulados, hoyo a hoyo")}
-function chFourball(r){const[A,B]=r.teams,l=doneH(r);return chBars(hl(l),cumMatch(l,h=>best(r,h,A),h=>best(r,h,B)),"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Estado del partido hoyo a hoyo")}
+function chFourball(r){const[A,B]=r.teams,l=doneM(r,A,B);return chBars(hl(l),cumMatch(l,h=>best(r,h,A),h=>best(r,h,B)),"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Estado del partido hoyo a hoyo")}
 const GCH={
  medal:chToPar,
  fourball:chFourball,
- nassau:r=>{if(r.n!==18)return chFourball(r);const[A,B]=r.teams,l=doneH(r),fa=h=>best(r,h,A),fb=h=>best(r,h,B);
+ nassau:r=>{if(r.n!==18)return chFourball(r);const[A,B]=r.teams,l=doneM(r,A,B),fa=h=>best(r,h,A),fb=h=>best(r,h,B);
    return chBars(hl(l),[...cumMatch(l.slice(0,9),fa,fb),...cumMatch(l.slice(9),fa,fb)],"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Ida y vuelta hoyo a hoyo",l.length>9?[9]:[])},
- skins:r=>{const l=doneH(r);let carry=0;const step=l.map(h=>{carry++;const w=lowWinner(r,h),c=carry;if(w>=0)carry=0;return[w,c]});
+ skins:r=>{const l=doneG(r,"skins");let carry=0;const step=l.map(h=>{carry++;const w=lowWinner(r,h),c=carry;if(w>=0)carry=0;return[w,c]});
    return chLines(hl(l),playerSer(r,l,(h,p)=>{const[w,c]=step[l.indexOf(h)];return w===p?c:0},x=>x+(x===1?" skin":" skins"),true),"Skins acumulados")},
- sixes:r=>{const l=doneH(r),seg=r.n/3,pairs=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]],v=[];
-   pairs.forEach(([A,B],i)=>v.push(...cumMatch(l.slice(i*seg,(i+1)*seg),h=>best(r,h,A),h=>best(r,h,B))));
-   return chBars(hl(l),v,"Arriba la pareja de "+nm(r,0),"Arriba la otra pareja","Cada tramo hoyo a hoyo",[seg,2*seg].filter(i=>i<l.length))},
- vegas:r=>{const[A,B]=r.teams,l=doneH(r);let pts=0;const v=l.map(h=>{const bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);
+ sixes:r=>{const L=hs(r),l=doneH(r),seg=r.n/3,pairs=[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]],v=[],xs=[],sp=[];
+   pairs.forEach(([A,B],i)=>{const q=Math.min(outT(r,A)??Infinity,outT(r,B)??Infinity),t=l.filter(h=>h>=L[i*seg]&&h<=L[(i+1)*seg-1]&&h<q);
+     if(i&&xs.length&&t.length)sp.push(xs.length);xs.push(...t);v.push(...cumMatch(t,h=>best(r,h,A),h=>best(r,h,B)))});
+   return chBars(hl(xs),v,"Arriba la pareja de "+nm(r,0),"Arriba la otra pareja","Cada tramo hoyo a hoyo",sp)},
+ vegas:r=>{const[A,B]=r.teams,l=doneG(r,"vegas");let pts=0;const v=l.map(h=>{const bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);
    pts+=vnum(sc(r,h,B[0]),sc(r,h,B[1]),bA&&!bB)-vnum(sc(r,h,A[0]),sc(r,h,A[1]),bB&&!bA);return pts});
    return chBars(hl(l),v,"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Puntos de Vegas acumulados")},
- wolf:r=>{const L=hs(r),l=doneH(r);if(!l.some(h=>r.wolf[h]!=null))return"";return chLines(hl(l),playerSer(r,l,(h,p)=>{const k=L.indexOf(h),w=k%4,dec=r.wolf[h];if(dec==null)return 0;
+ wolf:r=>{const L=hs(r),l=doneG(r,"wolf");if(!l.some(h=>r.wolf[h]!=null))return"";return chLines(hl(l),playerSer(r,l,(h,p)=>{const k=L.indexOf(h),w=k%4,dec=r.wolf[h];if(dec==null)return 0;
    const others=ids(r).filter(x=>x!==w);
    if(typeof dec==="number"){const A=[w,dec],B=others.filter(x=>x!==dec),a=best(r,h,A),b=best(r,h,B);return(a<b&&A.includes(p))||(b<a&&B.includes(p))?1:0}
    const a=sc(r,h,w),b=best(r,h,others);return a<b?(p===w?(dec==="blind"?6:4):0):b<a&&p!==w?1:0},x=>x+" pts",true),"Puntos de Wolf acumulados")},
- rabbit:r=>{const l=doneH(r);let holder=null;const hold=l.map((h,i)=>{if(r.n===18&&i===9)holder=null;const w=lowWinner(r,h);if(w>=0)holder=w;return holder});
+ rabbit:r=>{const l=doneG(r,"rabbit");let holder=null;const hold=l.map((h,i)=>{if(r.n===18&&i===9)holder=null;const w=lowWinner(r,h);if(w>=0)holder=w;return holder});
    return chStrip(r,hl(l),hold,"Quién tiene el conejo después de cada hoyo",r.n===18&&l.length>9?[9]:[])},
  snake:r=>{const L=hs(r);let k=-1;L.forEach((h,i)=>{if(r.d[h].some(x=>x.p!=null))k=i});if(k<0)return"";const l=L.slice(0,k+1);let holder=null;
    const hold=l.map(h=>{let mx=0,who=null;r.d[h].forEach((x,p)=>{if(x.p!=null&&x.p>=3&&x.p>=mx){mx=x.p;who=p}});if(who!=null)holder=who;return holder});
    return chStrip(r,hl(l),hold,"Quién tiene la víbora después de cada hoyo")},
- bba:r=>{const[A,B]=r.teams,l=doneH(r);let d=0;const v=l.map(h=>{const x=best(r,h,A),y=best(r,h,B),s=sum(r,h,A),t=sum(r,h,B);d+=(x<y)-(y<x)+(s<t)-(t<s);return d});
+ bba:r=>{const[A,B]=r.teams,l=doneG(r,"bba");let d=0;const v=l.map(h=>{const x=best(r,h,A),y=best(r,h,B),s=sum(r,h,A),t=sum(r,h,B);d+=(x<y)-(y<x)+(s<t)-(t<s);return d});
    return chBars(hl(l),v,"Arriba "+tn(r,A),"Arriba "+tn(r,B),"Diferencia de puntos acumulada")},
  stab2:chPH("stab2"),nines:chPH("nines"),acey:chPH("acey"),chairman:chPH("chairman"),fidget:chPH("fidget"),garbage:chPH("garbage"),greenies:chPH("greenies"),bbb:chPH("bbb"),
- rr:r=>{if(r.players.length!==2)return"";const l=doneH(r);return chBars(hl(l),cumMatch(l,h=>sc(r,h,0),h=>sc(r,h,1)),"Arriba "+nm(r,0),"Arriba "+nm(r,1),"Estado del partido hoyo a hoyo")},
+ rr:r=>{if(r.players.length!==2)return"";const l=doneM(r,[0],[1]);return chBars(hl(l),cumMatch(l,h=>sc(r,h,0),h=>sc(r,h,1)),"Arriba "+nm(r,0),"Arriba "+nm(r,1),"Estado del partido hoyo a hoyo")},
  lowhigh:chTH("lowhigh"),scotch:chTH("scotch"),
  stableford:r=>{const L=hs(r);let k=-1;L.forEach((h,i)=>{if(r.d[h].some(x=>x.s!=null))k=i});if(k<0)return"";const l=L.slice(0,k+1);
    return chLines(hl(l),playerSer(r,l,(h,p)=>{const s=sc(r,h,p);return s==null?null:stbl(s,PP(r,p)[h])},x=>x+" pts",true),"Puntos Stableford acumulados")}};
@@ -1060,10 +1101,10 @@ const needs=r=>({p:gameOn(r,"snake")||gameOn(r,"garbage"),fw:gameOn(r,"garbage")
 // Lo de los juegos (lobo, greenie, Bingo Bango Bongo), el score de todos y, de quien venga anotando putts o drive
 // en esta vuelta (vos siempre, y todos si un juego lo necesita), eso también
 function pend(r,h){const out=[],nd=needs(r);
-  if(gameOn(r,"wolf")&&r.players.length===4&&r.wolf[h]==null)out.push([-1,"lo que eligió el lobo"]);
+  if(gameOn(r,"wolf")&&r.players.length===4&&r.wolf[h]==null&&h<gcut(r,"wolf"))out.push([-1,"lo que eligió el lobo"]);
   if(P(r)[h]===3&&(gameOn(r,"greenies")||gameOn(r,"garbage"))&&(r.grn||{})[h]==null)out.push([-1,"el greenie"]);
   if(gameOn(r,"bbb")&&((r.bbb||{})[h]||[null,null,null]).some(x=>x==null))out.push([-1,"Bingo Bango Bongo"]);
-  r.players.forEach((n,p)=>{const x=r.d[h][p];
+  r.players.forEach((n,p)=>{const x=r.d[h][p];if(!inPlay(r,h,p))return;
   if(x.s==null){out.push([p,"el score"]);return}
   const tr=k=>nd[k]||p===r.me||hs(r).some(hh=>hh!==h&&r.d[hh][p][k]!=null);
   if(x.p==null&&tr("p"))out.push([p,"los putts"]);
@@ -1097,29 +1138,35 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
   ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
-  if(r.games.wolf&&r.players.length===4){const w=k%4,dec=r.wolf[h];
+  if(r.games.wolf&&r.players.length===4&&h<gcut(r,"wolf")){const w=k%4,dec=r.wolf[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span><span class="label">Lobo</span> <b>${esc(nm(r,w))}</b></span><span class="note">elige compañero</span></div>
     <div class="row">${ids(r).filter(p=>p!==w).map(p=>`<button class="chip" data-a="wolf" data-v="${p}" aria-pressed="${dec===p}">${esc(nm(r,p))}</button>`).join("")}
     <button class="chip" data-a="wolf" data-v="lone" aria-pressed="${dec==="lone"}">Solo</button><button class="chip" data-a="wolf" data-v="blind" aria-pressed="${dec==="blind"}">Ciego</button></div></div>`}
   if(r.games.bbb&&okR("bbb",r)){const b=(r.bbb&&r.bbb[h])||[];
     html+=`<div class="wolfbox"><span class="label">Bingo Bango Bongo</span>${[["Bingo","primero en el green"],["Bango","más cerca, con todos en el green"],["Bongo","primero en embocar"]].map(([t,d],i)=>`<div><b>${t}</b> <span class="note">${d}</span></div>
-    <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="bbb" data-v="${i}" data-p="${p}" aria-pressed="${b[i]===p}">${esc(n)}</button>`).join("")}</div>`).join("")}</div>`}
+    <div class="row">${r.players.map((n,p)=>inPlay(r,h,p)?`<button class="chip" data-a="bbb" data-v="${i}" data-p="${p}" aria-pressed="${b[i]===p}">${esc(n)}</button>`:"").join("")}</div>`).join("")}</div>`}
   if(P(r)[h]===3&&(r.games.greenies&&okR("greenies",r)||r.games.garbage&&okR("garbage",r))){const g=r.grn&&r.grn[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span class="label">Greenie</span><span class="note">más cerca del hoyo desde la salida</span></div>
-    <div class="row">${r.players.map((n,p)=>`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`).join("")}<button class="chip" data-a="grn" data-p="-1" aria-pressed="${g===-1}">Nadie</button></div><p class="note">Cuenta si después hace par o mejor. Nadie: ninguno quedó en el green desde la salida.</p></div>`}
+    <div class="row">${r.players.map((n,p)=>inPlay(r,h,p)?`<button class="chip" data-a="grn" data-p="${p}" aria-pressed="${g===p}">${esc(n)}</button>`:"").join("")}<button class="chip" data-a="grn" data-p="-1" aria-pressed="${g===-1}">Nadie</button></div><p class="note">Cuenta si después hace par o mejor. Nadie: ninguno quedó en el green desde la salida.</p></div>`}
   if(S.focus){html+=`<div class="fcards${ui.dir>0?" sl":ui.dir<0?" sr":""}">`;ui.dir=0}
   r.players.forEach((name,p)=>{const x=r.d[h][p],par=PP(r,p)[h];let tot=0,tp=0;L.forEach(hh=>{const v=sc(r,hh,p);if(v!=null){tot+=v;tp+=v-PP(r,p)[hh]}});
+    const o=outH(r,p),totTxt=`Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}`;
+    // Quien abandonó no carga más: la tarjeta lo dice y se puede deshacer
+    if(o!=null&&h>=o){html+=`<div class="pcard gone"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span><span class="note">abandonó en el hoyo ${o+1}</span></div></div><span class="p-tot">${totTxt}</span></div>
+      <button class="btn small" data-a="out" data-p="${p}">Deshacer el abandono</button></div>`;return}
+    // Se puede marcar en el primer hoyo que no cargó, si no tiene scores después
+    const canOut=x.s==null&&L.every(hh=>hh<=h||sc(r,hh,p)==null);
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
     const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
     // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
-    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} ${c.unit==="yd"?"yd":"m"}${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">Total ${tot||"–"}${tot?" ("+toPar(tp)+")":""}</span></div>
+    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} ${c.unit==="yd"?"yd":"m"}${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">${totTxt}</span></div>
     <div class="score-row">${step}
     <div class="ex pt-ex${miss(p,"los putts")?" pend":""}"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
     ${S.focus&&!fullCard(r,p)?"":`<div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
-     </div>`}</div>`});
+     </div>`}${canOut?`<button class="quit" data-a="out" data-p="${p}">Abandonó en este hoyo</button>`:""}</div>`});
   html+=`${S.focus?"</div>":""}</fieldset>${courseMap(c)&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${courseMap(c)[0]}" alt="${courseMap(c)[1]}"></details>`:""}
   ${S.focus?'<div class="fbar">':""}${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>${S.focus?"</div>":""}
@@ -1132,14 +1179,17 @@ function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab
   if(r.n===18)body+=rowSub("Vuelta",L.slice(9));body+=rowSub("Total",L);
   return`<div class="stack"><div class="tablewrap"><table class="card"><thead><tr><th>Hoyo</th><th>Par</th>${r.players.map((n,p)=>`<th>${esc(n)}${teeSet(r).length>1?`<br>${teeDot(CRS(r),teeK(r,p))}`:""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
   <div class="legend"><span class="sc e">3</span>Águila <span class="sc b">3</span>Birdie <span class="sc bo">5</span>Bogey <span class="sc d">6</span>Doble o más</div>
-  ${r.note?`<p class="note">${esc(r.note)}</p>`:""}${CANSHARE&&hs(r).some(h=>r.d[h].some(x=>x.s!=null))?`<button class="btn" data-a="img" data-v="${r.id}">Compartir como imagen</button>`:""}</div>`}
+  ${outTxt(r)?`<p class="note">${esc(outTxt(r))}</p>`:""}${r.note?`<p class="note">${esc(r.note)}</p>`:""}${CANSHARE&&hs(r).some(h=>r.d[h].some(x=>x.s!=null))?`<button class="btn" data-a="img" data-v="${r.id}">Compartir como imagen</button>`:""}</div>`}
 // Arriba de Stats y Juegos: ver la vuelta abierta o el historial de todas
 const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mostrar"><button data-a="${a}" data-v="round" aria-pressed="${m==="round"}">Esta vuelta</button><button data-a="${a}" data-v="hist" aria-pressed="${m==="hist"}">Historial</button></div>`;
 function vGames(r){const m=r&&S.gamesMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("gmode",m):""}${m==="round"?vGamesRound(r):vGamesHist()}</div>`}
 function vStats(r){const m=r&&S.statsMode!=="hist"?"round":"hist";return`<div class="stack">${r?modeSeg("smode",m):""}${m==="round"?vStatsRound(r):vStatsHist()}</div>`}
+// Quiénes abandonaron, y en cada juego que se corta, hasta dónde cuenta
+const outTxt=r=>ids(r).filter(p=>outH(r,p)!=null).map(p=>`${nm(r,p)} abandonó en el hoyo ${outH(r,p)+1}.`).join(" ");
+const cutTxt=(r,k)=>{if(k==="stab2")return outTxt(r)?`<p class="note">Cada hoyo que no jugó quien abandonó le vale −3.</p>`:"";const c=gcut(r,k);return c===Infinity?"":`<p class="note">Terminado por abandono en el hoyo ${c+1}: ${c===r.start?"no llegó a jugarse ningún hoyo":`cuenta hasta el hoyo ${c}`}.</p>`};
 function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r)),rc=r.closed?vReceipt(r,on):"";if(!on.length)return rc+`<p class="muted">No hay juegos activos en esta vuelta.</p>`;
-  return`<div class="stack">${rc}${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
-   <p class="g-res">${esc(g.res)}</p>${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
+  return`<div class="stack">${rc}${outTxt(r)?`<p class="note">${esc(outTxt(r))}</p>`:""}${on.map(([k,t0,rule])=>{const t=k==="rr"&&r.players.length>2?"Match play todos contra todos":t0;const g=GFN[k](r);return`<section class="game"><div class="g-h"><h3>${t}</h3></div>
+   <p class="g-res">${esc(g.res)}</p>${cutTxt(r,k)}${g.lines.length?`<div class="g-lines">${g.lines.map(([a,b])=>`<div><span>${esc(a)}</span><span>${esc(b)}</span></div>`).join("")}</div>`:""}${GCH[k]?`<div class="chartwrap">${GCH[k](r)}</div>`:""}
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
 function vStatsRound(r,hist){const mk=meKey(),hp=hist?idxOf(r,S.histP,mk):-1,p=hist?(hp>=0?hp:r.me!=null?r.me:0):Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
   const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="${hist?"hp":"sp"}" data-v="${hist?esc(pk(r,i,mk)):i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
@@ -1211,27 +1261,8 @@ function vStatsAll(){const ps=people();
   return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${vs}${last}${vHcp(who.name,sel===mk)}</div>`}
 
 // Ganadores de cada juego en una vuelta terminada: [{pl:jugadores, w:ganadores}] (Snake: l = quien perdió)
-function gWin(k,r){const all=ids(r),[A,B]=r.teams,top=(v,hi)=>{const m=hi?Math.max(...v):Math.min(...v);if(v.every(x=>x===m))return[];return all.filter(p=>v[p]===m)};
-  const team=(x)=>x>0?A:x<0?B:[],teamsAll=[...A,...B],L=hs(r);
-  switch(k){
-   case"medal":{const t=all.map(p=>{const x=stats(r,p);return x.n===r.n?x.s-x.par:null});if(t.some(x=>x==null))return[];return[{pl:all,w:top(t,false)}]}
-   case"fourball":{const m=matchPlay(r,L,h=>best(r,h,A),h=>best(r,h,B),"","");return m.done?[{pl:teamsAll,w:m.winner===0?A:m.winner===1?B:[]}]:[]}
-   case"nassau":{const parts=r.n===18?[L.slice(0,9),L.slice(9),L]:[L];let a=0,b=0;parts.forEach(l=>{const m=matchPlay(r,l,h=>best(r,h,A),h=>best(r,h,B),"","");if(m.winner===0)a++;else if(m.winner===1)b++});return[{pl:teamsAll,w:team(a-b)}]}
-   case"skins":{const won=all.map(()=>0);let carry=0;L.forEach(h=>{carry++;const w=lowWinner(r,h);if(w>=0){won[w]+=carry;carry=0}});return[{pl:all,w:won.some(x=>x)?top(won,true):[]}]}
-   case"sixes":{const seg=r.n/3,pts=[0,0,0,0];[[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]].forEach(([X,Y],i)=>{const m=matchPlay(r,L.slice(i*seg,(i+1)*seg),h=>best(r,h,X),h=>best(r,h,Y),"","");if(m.winner===0)X.forEach(p=>pts[p]++);else if(m.winner===1)Y.forEach(p=>pts[p]++)});return[{pl:all,w:top(pts,true)}]}
-   case"vegas":{let pts=0;L.forEach(h=>{const bA=A.some(p=>sc(r,h,p)<PP(r,p)[h]),bB=B.some(p=>sc(r,h,p)<PP(r,p)[h]);pts+=vnum(sc(r,h,B[0]),sc(r,h,B[1]),bA&&!bB)-vnum(sc(r,h,A[0]),sc(r,h,A[1]),bB&&!bA)});return[{pl:teamsAll,w:team(pts)}]}
-   case"wolf":{if(!L.some(h=>r.wolf[h]!=null))return[];const pts=[0,0,0,0];L.forEach((h,i)=>{const w=i%4,dec=r.wolf[h];if(dec==null)return;const others=all.filter(p=>p!==w);
-     if(typeof dec==="number"){const X=[w,dec],Y=others.filter(p=>p!==dec),a=best(r,h,X),b=best(r,h,Y);if(a<b)X.forEach(p=>pts[p]++);else if(b<a)Y.forEach(p=>pts[p]++)}
-     else{const a=sc(r,h,w),b=best(r,h,others);if(a<b)pts[w]+=dec==="blind"?6:4;else if(b<a)others.forEach(p=>pts[p]++)}});return[{pl:all,w:top(pts,true)}]}
-   case"rabbit":return(r.n===18?[L.slice(0,9),L.slice(9)]:[L]).map(l=>{let hd=null;l.forEach(h=>{const w=lowWinner(r,h);if(w>=0)hd=w});return{pl:all,w:hd==null?[]:[hd]}});
-   case"snake":{let hd=null,any=false;L.forEach(h=>{const ps=r.d[h].map(x=>x.p);if(ps.some(x=>x!=null))any=true;let mx=0,who=null;ps.forEach((v,p)=>{if(v!=null&&v>=3&&v>=mx){mx=v;who=p}});if(who!=null)hd=who});return any?[{pl:all,w:[],l:hd==null?[]:[hd]}]:[]}
-   case"bba":{let a=0,b=0;L.forEach(h=>{const x=best(r,h,A),y=best(r,h,B),s1=sum(r,h,A),t=sum(r,h,B);a+=(x<y)+(s1<t);b+=(y<x)+(t<s1)});return[{pl:teamsAll,w:team(a-b)}]}
-   case"rr":{const ms=rrMatches(r);if(!ms.every(x=>x.m.done))return[];return ms.map(({i,j,m})=>({pl:[i,j],w:m.winner===0?[i]:m.winner===1?[j]:[]}))}
-   case"lowhigh":case"scotch":{const run=thRun(r,k),a=run.reduce((s,[,v])=>s+v[0],0),b=run.reduce((s,[,v])=>s+v[1],0);return run.length?[{pl:teamsAll,w:team(a-b)}]:[]}
-   case"fidget":{const run=phRun(r,k);if(!run.length)return[];const t=phTot(r,run);return[{pl:all,w:[],l:all.filter(p=>!t[p])}]}
-   case"stab2":case"nines":case"acey":case"chairman":case"garbage":case"greenies":case"bbb":{const run=phRun(r,k);if(!run.length)return[];return[{pl:all,w:top(phTot(r,run),true)}]}
-   case"stableford":{const t=all.map(p=>{let s=0;L.forEach(h=>{const v=sc(r,h,p);if(v!=null)s+=stbl(v,PP(r,p)[h])});return s});return[{pl:all,w:top(t,true)}]}}
-  return[]}
+// El historial usa el mismo cálculo que la vista de la vuelta (H2): un solo lugar por juego
+const gWin=(k,r)=>GFN[k](r).ev||[];
 function vGamesHist(){const hs_=histSel();if(hs_.r)return`<div class="stack">${hs_.html}${vGamesRound(hs_.r)}</div>`;return hs_.html+vGamesAll()}
 function vGamesAll(){const mk=meKey(),done=S.rounds.filter(finished),names=new Map(people().map(e=>[e.k,e.name]));
   const intro=done.length?`<p class="note">${done.length} vuelta${done.length===1?"":"s"} terminada${done.length===1?"":"s"}. Cuenta quién ganó cada juego; los empates arriba cuentan para todos los empatados.</p>`
@@ -1542,7 +1573,7 @@ async function unpack(s){const u=b64u.dec(s.slice(1));
   const raw=s[0]==="z"?await pipeBytes(u,new DecompressionStream("deflate-raw")):s[0]==="j"?u:null;if(!raw)throw 0;return JSON.parse(new TextDecoder().decode(raw))}
 // Sin "me": quién es quién lo elige cada uno al abrir el link. La cancha viaja entera salvo que sea la de fábrica sin cambios
 const shareObj=r=>({v:1,course:CRS(r).id,c:JSON.stringify(CRS(r))===JSON.stringify(BUILTIN)?undefined:CRS(r),id:r.id,date:r.date,tee:r.tee,tees:r.players.map((_,p)=>teeK(r,p)),n:r.n,start:r.start,players:r.players,teams:r.teams,closed:!!r.closed,
-  games:GAMES.map(g=>g[0]).filter(k=>r.games[k]),wolf:r.wolf||{},bbb:r.bbb||{},grn:r.grn||{},d:r.d.map(h=>h.map(x=>[x.s,x.p,x.fw,x.pen||0,x.bk?1:0]))});
+  games:GAMES.map(g=>g[0]).filter(k=>r.games[k]),wolf:r.wolf||{},bbb:r.bbb||{},grn:r.grn||{},out:r.out||{},d:r.d.map(h=>h.map(x=>[x.s,x.p,x.fw,x.pen||0,x.bk?1:0]))});
 // Lo que llega por link no es de confianza: se reconstruye la vuelta con valores válidos
 // Devuelve [vuelta, cancha que trajo el link o null]; los links de antes de las canchas son de la Cancha Nueva
 function cleanShared(o){if(!o||o.v!==1)throw 0;
@@ -1558,9 +1589,11 @@ function cleanShared(o){if(!o||o.v!==1)throw 0;
   const bbb={},grn={};
   if(o.bbb&&typeof o.bbb==="object")Object.entries(o.bbb).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&Array.isArray(v))bbb[k]=[0,1,2].map(i=>ok(v[i])?v[i]:null)});
   if(o.grn&&typeof o.grn==="object")Object.entries(o.grn).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(ok(v)||v===-1))grn[k]=v});
+  // Abandono: un hoyo de la vuelta; los scores de ese jugador desde ahí no valen
+  const out={};if(o.out&&typeof o.out==="object")Object.entries(o.out).forEach(([p,v])=>{const k=+p;if(ok(k)&&Number.isInteger(v)&&v>=start&&v<start+n){out[k]=v;for(let h=v;h<18;h++)d[h][k]={s:null,p:null,fw:null,pen:0,bk:false}}});
   const tee=has(cc.tees,o.tee)?o.tee:defTee(cc);
   return[{bbb,grn,id:typeof o.id==="string"&&/^[\w-]{1,40}$/.test(o.id)?o.id:"r"+Date.now(),date:typeof o.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)?o.date:todayIso(),
-    course:cc.id,tee,tees:players.map((_,i)=>Array.isArray(o.tees)&&has(cc.tees,o.tees[i])?o.tees[i]:tee),players,teams,start,n,games,d,wolf,cur:0,closed:o.closed===true},inc]}
+    course:cc.id,tee,tees:players.map((_,i)=>Array.isArray(o.tees)&&has(cc.tees,o.tees[i])?o.tees[i]:tee),players,teams,start,n,games,d,wolf,out,cur:0,closed:o.closed===true},inc]}
 // La cancha de una vuelta recibida se guarda si no está; si ya está, se le suman las salidas que le falten
 function keepCourse(c){if(!c)return;const loc=S.courses.find(x=>x.id===c.id);if(!loc){S.courses.push(c);return}
   Object.entries(c.tees).forEach(([k,t])=>{if(!has(loc.tees,k)&&Object.keys(loc.tees).length<MAXT)loc.tees[k]=t})}
@@ -1611,7 +1644,7 @@ function render(){applyTheme();document.documentElement.classList.toggle("focusi
   app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
-  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn"].includes(a))return;
+  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out"].includes(a))return;
   if(S.view==="course")readCDraft();const cd=ui.cdraft;
   switch(a){
    case"cnew":openCourse(null,"rounds");scrollTop=true;break;
@@ -1641,6 +1674,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"wolf":{const val=v==="lone"||v==="blind"?v:+v;r.wolf[h]=r.wolf[h]===val?null:val;break}
    case"bbb":{r.bbb=r.bbb||{};const t=r.bbb[h]||[null,null,null];t[+v]=t[+v]===p?null:p;r.bbb[h]=t;break}
    case"grn":r.grn=r.grn||{};r.grn[h]=r.grn[h]===p?null:p;break;
+   case"out":r.out=r.out||{};if(outH(r,p)!=null)delete r.out[p];else if(hs(r).every(hh=>hh<h||sc(r,hh,p)==null)){r.out[p]=h;toast(`${nm(r,p)} abandonó en el hoyo ${h+1}`)}break;
    case"sp":S.statsP=+v;break;
    case"hp":S.histP=v;break;
    case"smode":S.statsMode=v;break;
@@ -1704,8 +1738,10 @@ function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();r
     r.d=Array.from({length:18},(_,h)=>d.players.map(p=>p.orig!=null&&old[h][p.orig]?old[h][p.orig]:{s:null,p:null,fw:null,pen:0,bk:false}));
     if(!(d.players.length===r.players.length&&d.players.every((p,i)=>p.orig===i))){const to=i=>{const j=d.players.findIndex(p=>p.orig===i);return j<0?null:j};
       r.wolf={};r.bbb=Object.fromEntries(Object.entries(r.bbb||{}).map(([h,v])=>[h,v.map(x=>x==null?null:to(x))]));
-      r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,v===-1?-1:to(v)]).filter(e=>e[1]!=null))}
-    Object.assign(r,{course,date:d.date||r.date,players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games,tee,tees,me:meI});r.cur=Math.min(r.cur,r.n-1);S.cur=r.id}
+      r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,v===-1?-1:to(v)]).filter(e=>e[1]!=null));
+      r.out=Object.fromEntries(Object.entries(r.out||{}).map(([p,h])=>[to(+p),h]).filter(e=>e[0]!=null))}
+    Object.assign(r,{course,date:d.date||r.date,players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games,tee,tees,me:meI});r.cur=Math.min(r.cur,r.n-1);S.cur=r.id;
+    if(r.out)Object.keys(r.out).forEach(p=>{if(!hs(r).includes(r.out[p]))delete r.out[p]})}
     S.view="games";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0);return}
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.course=course;r.tee=tee;r.tees=tees;r.me=meI;
   S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0)}
@@ -1758,7 +1794,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="79575c1e46";
+const VERSION="943407817d";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
