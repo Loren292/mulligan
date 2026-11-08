@@ -1123,14 +1123,14 @@ function pendGate(r,h){const k=r.id+":"+h;if(!pend(r,h).length||ui.warned===k){u
 /* ---------- modo focus: la pantalla del hoyo para jugar ---------- */
 // Arriba la tarjeta del hoyo: número, par, distancia de tu salida, índice, los hoyos como barra con tus resultados,
 // tu total y cómo viene el primer juego. Sin la barra de arriba, y con los botones para pasar de hoyo siempre a mano.
-function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0,u=c.unit==="yd"?"yd":"m";let tot=0,tp=0,n=0;
+function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0;let tot=0,tp=0,n=0;
   L.forEach(hh=>{const v=sc(r,hh,me);if(v!=null){tot+=v;tp+=v-PP(r,me)[hh];n++}});
   const seg=L.map((hh,i)=>{const v=sc(r,hh,me),d=v==null?null:v-PP(r,me)[hh],cl=d==null?"":d<0?"u":d===0?"p":d===1?"o":"oo";
     return`<button data-a="go" data-v="${i}" class="sg ${cl}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}" aria-label="Hoyo ${hh+1}${v==null?"":": "+v}"><i></i></button>`}).join("");
   const lv=r.closed?null:liveRows(r)[0];
   return`<div class="stack"><section class="fhero" aria-label="Hoyo ${h+1}">
    <div class="fh-top"><div class="fh-no"><small>Hoyo</small><b>${h+1}</b></div>
-    <div class="fh-facts"><div><small>Par</small><b>${parLab(r,h)}</b></div><div><small>${u==="yd"?"Yardas":"Metros"}</small><b>${dist(c,teeK(r,me),h)||"–"}</b></div><div><small>Índice</small><b>${siLab(r,h)}</b></div></div>
+    <div class="fh-facts"><div><small>Par</small><b>${parLab(r,h)}</b></div><div><small>Yardas</small><b>${dist(c,teeK(r,me),h)||"–"}</b></div><div><small>Índice</small><b>${siLab(r,h)}</b></div></div>
     <button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button></div>
    <div class="fh-seg${L.length>9?" n18":""}">${seg}</div>
    <div class="fh-foot"><span><b>${esc(nm(r,me))}</b> ${n?`${tot} <em>${toPar(tp)}</em> · ${n} ${n===1?"hoyo":"hoyos"}`:"sin hoyos todavía"}</span>${lv?`<button type="button" class="fh-live" data-a="live"><small>${esc(lv[0])}</small> ${esc(lv[1])}</button>`:""}</div>
@@ -1141,7 +1141,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
   let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
    <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
-   ${mixed?"":`<div class="fact"><span class="label">${c.unit==="yd"?"Yardas":"Metros"}</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
+   ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
    <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div></div>
   ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
@@ -1168,7 +1168,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
     // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
-    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} ${c.unit==="yd"?"yd":"m"}${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">${totTxt}</span></div>
+    html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">${totTxt}</span></div>
     <div class="score-row">${step}
     <div class="ex pt-ex${miss(p,"los putts")?" pend":""}"><span class="label">Putts</span><div class="step sm"><button data-a="pt" data-p="${p}" data-v="-1" aria-label="Restar putt">−</button><span class="val num" style="display:grid;place-items:center">${x.p??"–"}</span><button data-a="pt" data-p="${p}" data-v="1" aria-label="Sumar putt">+</button></div></div></div>
     ${S.focus&&!fullCard(r,p)?"":`<div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
@@ -1802,7 +1802,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="70e0664b0d";
+const VERSION="f70ecc6004";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
