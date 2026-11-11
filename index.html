@@ -552,7 +552,8 @@ table.cedit input.own{border-color:var(--accent)}
 .mg .upd{background:var(--ink)}
 .mg .upd .btn.primary{background:var(--volt);color:var(--on-volt);border-color:var(--volt)}
 @media (max-width:430px){.round-meta{font-size:11.5px}.themesel{max-width:136px;font-size:13px;padding:0 4px 0 7px}.royal .themesel{max-width:114px}.top-in{gap:8px}}
-@media (max-width:384px){.round-meta{display:none}}
+@media (max-width:429px){.round-meta{display:none}}
+@media (max-width:479px){.royal .round-meta{display:none}}
 /* modo focus */
 .focusing header.top{display:none}
 .focusing main{padding-top:max(12px,env(safe-area-inset-top,0px))}
@@ -627,6 +628,25 @@ table.cedit input.own{border-color:var(--accent)}
 /* en los celulares angostos no entra todo en una fila: el drive pasa arriba */
 @media (max-width:360px){.extras{grid-template-columns:auto 1fr auto}.extras .ex:first-child{grid-column:1/-1}.extras .ex:nth-child(2){grid-column:2;justify-self:end}.extras .chip.bk{grid-column:3}
   .pcard .score-row>.step button{width:40px}.pcard .score-row>.step .val{min-width:46px}.pcard .ex .step.sm button{width:30px}.pcard .ex .step.sm .val{min-width:30px}}
+/* datos del green: fila al pie de la tarjeta (el botón y el link de abandono) y la hoja para cargarlos */
+.gline{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:36px}
+.gline .quit{margin:0 0 0 auto;flex:none}
+.gchip{min-width:0;height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:0 12px;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gchip.on{background:var(--accent-soft);border-color:transparent}
+.ios .gchip,.mg .gchip{border:0;background:var(--sunk)}
+.ios .gchip.on,.mg .gchip.on{background:var(--accent-soft)}
+.royal .gchip{border-radius:2px;border-color:var(--brass);font-family:var(--body);font-size:16px}
+.gsec{display:flex;flex-direction:column;gap:8px}
+.gsec .note{margin:0}
+.gh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gpick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.gpick.c6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.gpick .chip,.gcross .chip{height:44px;padding:0 4px;min-width:0}
+.gcross{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;max-width:330px;margin:0 auto;align-items:center}
+.gcross .gt{grid-column:2;grid-row:1}.gcross .gl{grid-column:1;grid-row:2}.gcross .gr{grid-column:3;grid-row:2}.gcross .gb{grid-column:2;grid-row:3}
+.gcross .gdot{grid-column:2;grid-row:2;justify-self:center;width:44px;height:44px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent)}
+.sheet .chip:disabled{opacity:.4}
+.icon-btn:disabled{opacity:.35;cursor:default}
 /* orden de los jugadores */
 .grip{flex:none;display:grid;place-items:center;width:18px;height:44px;margin:0 -2px 0 -4px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
 .grip:active{cursor:grabbing}
@@ -673,7 +693,7 @@ table.cedit input.own{border-color:var(--accent)}
 </style>
 
 <div class="app">
-  <header class="top"><div class="top-in"><div class="brand">Mulligan<b>.</b></div><div class="row" style="flex-wrap:nowrap;gap:10px"><div class="round-meta" id="meta"></div><button type="button" class="icon-btn" data-a="themes" aria-label="Elegir tema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.3-.9.3-1.9 1.3-1.9H17a4 4 0 0 0 4-4c0-5.5-4-10.3-9-10.3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15.5" cy="7.5" r="1.2"/></svg><span class="sw"></span></button></div></div></header>
+  <header class="top"><div class="top-in"><div class="brand">Mulligan<b>.</b></div><div class="row" style="flex-wrap:nowrap;gap:10px"><div class="round-meta" id="meta"></div><div class="row" style="flex-wrap:nowrap;gap:6px"><button type="button" class="icon-btn" id="undo" data-a="undo" aria-label="Deshacer" title="Deshacer" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button type="button" class="icon-btn" id="redo" data-a="redo" aria-label="Rehacer" title="Rehacer" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button></div><button type="button" class="icon-btn" data-a="themes" aria-label="Elegir tema"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.3-.9.3-1.9 1.3-1.9H17a4 4 0 0 0 4-4c0-5.5-4-10.3-9-10.3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15.5" cy="7.5" r="1.2"/></svg><span class="sw"></span></button></div></div></header>
   <main id="app"></main>
   <div id="sheet"></div>
   <nav class="tabs" aria-label="Secciones"><div class="tabs-in" id="tabs"></div></nav>
@@ -744,6 +764,12 @@ const totYd=(c,k)=>{const t=c.tees[k].m.reduce((a,v)=>a+(parseInt(String(v).spli
 const sum18=a=>a.reduce((s,x)=>s+(+x||0),0);
 // Lo que viene de afuera (link, copia, editor) se rearma con valores válidos
 const intIn=(x,a,b)=>Number.isInteger(x)&&x>=a&&x<=b?x:null;
+// Datos del green por celda, opcionales: pd primer putt (pasos), ch golpes desde menos de 50 m, ms lado del green errado.
+// Sin dato = la clave no está (nunca null)
+const MS=["corto","largo","izq","der"];
+const GV={pd:v=>intIn(v,1,99),ch:v=>intIn(v,0,9),ms:v=>MS.includes(v)?v:null};
+function cleanGreen(x){if(x&&typeof x==="object")Object.keys(GV).forEach(k=>{if(has(x,k)&&GV[k](x[k])==null)delete x[k]});return x}
+function setG(x,k,v){if(v==null)delete x[k];else x[k]=v}
 const distOk=v=>typeof v==="number"?intIn(v,1,999):typeof v==="string"&&/^\d{1,3}(\/\d{1,3})?$/.test(v)?v:null;
 const arr18=(a,f)=>Array.from({length:18},(_,h)=>f(Array.isArray(a)?a[h]:null));
 function cleanCourse(o){if(!o||typeof o!=="object"||typeof o.id!=="string"||!/^[\w-]{1,40}$/.test(o.id))return null;
@@ -920,6 +946,14 @@ const okR=(k,r)=>!gameOk(k,r.players.length,r.teams[0].length,r.teams[1].length,
 /* ---------- juegos nuevos ---------- */
 // Puntos por hoyo para cada jugador: f(r,h,st) devuelve un número por jugador (null = ese hoyo no cuenta); st guarda estado entre hoyos
 const gir=(x,par)=>x.s!=null&&x.p!=null&&x.s-x.p<=par-2;
+// Qué datos del green valen (D3): el primer putt no vale sin putts y el lado errado no vale con GIR.
+// No se borran solos: toda cuenta con estos datos pasa por acá
+function greenOf(x,par){const o={pd:null,ch:null,ms:null};if(!x||typeof x!=="object")return o;
+  if(GV.pd(x.pd)!=null&&x.p!==0)o.pd=x.pd;if(GV.ch(x.ch)!=null)o.ch=x.ch;if(GV.ms(x.ms)!=null&&!gir(x,par))o.ms=x.ms;return o}
+const MSTXT={corto:"corto",largo:"largo",izq:"izquierda",der:"derecha"};
+function greenTxt(x,par){const g=greenOf(x,par);
+  return[g.pd!=null?g.pd+(g.pd===1?" paso":" pasos"):"",g.ch!=null?g.ch+" cerca":"",g.ms!=null?MSTXT[g.ms]:""].filter(Boolean).join(" · ")}
+const hasGreen=(r,p)=>hs(r).some(h=>{const x=r.d[h][p];return!!x&&(has(x,"pd")||has(x,"ch")||has(x,"ms"))});
 const PH={
  // quien abandonó suma −3 en cada hoyo que no jugó, para que abandonar nunca convenga (P2)
  stab2:{f:(r,h)=>{if(!r.d[h].some(x=>x.s!=null))return null;return r.players.map((_,p)=>{const s=sc(r,h,p);if(s==null)return inPlay(r,h,p)?null:-3;const d=s-PP(r,p)[h];return d<=-3?8:d===-2?5:d===-1?2:d===0?0:d===1?-1:-3})}},
@@ -1086,7 +1120,7 @@ const pct=(a,b)=>b?Math.round(a/b*100)+"%":"–";
 let S;
 const migrate=r=>{if(r.games&&r.games.fourball&&r.teams&&r.teams.every(t=>t.length===1)&&!("rr"in r.games))r.games.rr=true;if(!r.course)r.course=BUILTIN.id;return r};
 // Los datos de antes de las canchas no traen ninguna: arrancan con la Cancha Nueva, que es donde se jugaron
-function norm(j){j.rounds.forEach(migrate);const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
+function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEach(h=>{if(Array.isArray(h))h.forEach(cleanGreen)})});const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
   j.courses=cs.filter((c,i)=>cs.findIndex(x=>x.id===c.id)===i);
   // Antes se llamaba solo "Cancha Nueva": si nadie le cambió el nombre, pasa al nuevo
   j.courses.forEach(c=>{if(c.id===BUILTIN.id&&c.name==="Cancha Nueva")c.name=BUILTIN.name});
@@ -1097,9 +1131,84 @@ function norm(j){j.rounds.forEach(migrate);const cs=(Array.isArray(j.courses)?j.
   j.seeded=FACTORY.map(f=>f.id);return j}
 function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&Array.isArray(j.rounds))return norm(j)}catch(e){}
   return{rounds:[],courses:FACTORY.map(clone),seeded:FACTORY.map(f=>f.id),cur:null,view:"rounds",statsP:0}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){track();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const R=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
-let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:""};
+let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:"",gs:null,grp:null,act:null};
+
+/* ---------- deshacer y rehacer ---------- */
+// Todo cambio de datos pasa por save(): track() compara cada vuelta (sin r.cur), las canchas y S.meName con la foto anterior
+// y guarda el antes y el después de lo que cambió. Quien cambia datos pone ui.act={t,k,go} antes de save(); si no, queda
+// como "último cambio". Los toques seguidos con la misma clave k (mismo control, jugador y hoyo) son un solo cambio.
+// El historial vive en su propia clave, fuera de S: no viaja en el backup
+const HKEY="mdp-golf-undo-v1",HMAX=50;
+let HIST={u:[],r:[]},HB=null;
+const snapR=r=>JSON.stringify({...r,cur:0});
+function histBase(){const m=new Map();S.rounds.forEach((r,i)=>m.set(r.id,{j:snapR(r),c:r.cur,i}));HB={m,cs:JSON.stringify(S.courses),me:S.meName??null}}
+function track(){if(!HB){histBase();return}const act=ui.act,m=new Map(),ch=[];ui.act=null;
+  S.rounds.forEach((r,i)=>{const j=snapR(r),o=HB.m.get(r.id);m.set(r.id,{j,c:r.cur,i});if(!o||o.j!==j)ch.push({id:r.id,b:o?o.j:null,a:j,bi:o?o.i:-1,ai:i,bc:o?o.c:null,ac:r.cur})});
+  HB.m.forEach((o,id)=>{if(!m.has(id))ch.push({id,b:o.j,a:null,bi:o.i,ai:-1,bc:o.c,ac:null})});
+  const cs=JSON.stringify(S.courses),me=S.meName??null;
+  const e={t:act?act.t:"último cambio",k:act?act.k:null,go:act?act.go:null,ch,cs:cs!==HB.cs?{b:HB.cs,a:cs}:null,me:me!==HB.me?{b:HB.me,a:me}:null};
+  HB={m,cs,me};
+  // Un toque que no cambia nada cierra el grupo, aunque sea sobre el mismo control
+  if(!ch.length&&!e.cs&&!e.me){ui.grp=null;return}
+  // Mismo grupo: se conserva el antes del primer toque y se reemplaza el después; si quedó como estaba, no deja nada y el grupo se cierra
+  const L=HIST.u[HIST.u.length-1];
+  if(e.k!=null&&e.k===ui.grp&&!HIST.r.length&&L&&L.k===e.k){
+    ch.forEach(c=>{const o=L.ch.find(x=>x.id===c.id);if(o){o.a=c.a;o.ai=c.ai;o.ac=c.ac}else L.ch.push(c)});
+    if(e.cs)L.cs=L.cs?{b:L.cs.b,a:e.cs.a}:e.cs;if(e.me)L.me=L.me?{b:L.me.b,a:e.me.a}:e.me;
+    L.ch=L.ch.filter(c=>c.b!==c.a);if(L.cs&&L.cs.b===L.cs.a)L.cs=null;if(L.me&&L.me.b===L.me.a)L.me=null;
+    if(!L.ch.length&&!L.cs&&!L.me){HIST.u.pop();ui.grp=null;return}}
+  else{HIST.u.push(e);HIST.r=[];if(HIST.u.length>HMAX)HIST.u.shift()}
+  ui.grp=e.k}
+// side "b" vuelve al antes (deshacer), "a" al después (rehacer). Las vueltas vuelven a su lugar con el hoyo que se estaba viendo
+function applyEntry(e,side){const was={};
+  e.ch.forEach(c=>{const i=S.rounds.findIndex(r=>r.id===c.id);if(i>=0){was[c.id]=S.rounds[i].cur;S.rounds.splice(i,1)}});
+  e.ch.filter(c=>c[side]!=null).sort((x,y)=>x[side+"i"]-y[side+"i"]).forEach(c=>{const r=JSON.parse(c[side]),k=has(was,c.id)?was[c.id]:c[side+"c"];
+    r.cur=Number.isInteger(k)?Math.max(0,Math.min(k,(r.n||18)-1)):0;S.rounds.splice(Math.max(0,Math.min(c[side+"i"],S.rounds.length)),0,r)});
+  if(e.cs)S.courses=JSON.parse(e.cs[side]);
+  if(e.me){if(e.me[side]==null)delete S.meName;else S.meName=e.me[side]}}
+function histStep(from,to,side,word){const e=HIST[from].pop();if(!e)return false;const v0=S.view,c0=S.cur;
+  applyEntry(e,side);HIST[to].push(e);
+  const g=e.go&&S.rounds.find(r=>r.id===e.go.id);
+  if(g){S.cur=g.id;S.view="hole";const i=hs(g).indexOf(e.go.h);if(i>=0)g.cur=i}
+  else if(!S.rounds.some(r=>r.id===S.cur)){const f=e.ch.map(c=>S.rounds.find(r=>r.id===c.id)).find(Boolean)||S.rounds[0];S.cur=f?f.id:null;if(S.view==="hole"||S.view==="card")S.view="rounds"}
+  ui.gs=null;ui.grp=null;ui.act=null;ui.pendingDel=null;ui.warned=null;histBase();save();render();
+  if(S.view!==v0||S.cur!==c0)window.scrollTo(0,0);toast(`${word}: ${e.t}`);return true}
+function undo(){return histStep("u","r","b","Deshecho")}
+function redo(){return histStep("r","u","a","Rehecho")}
+// Se escribe cuando la app pasa a segundo plano. Si no entra, se tira la mitad más vieja; nunca toca el guardado de S
+function saveHist(){for(let k=0;k<4;k++){try{localStorage.setItem(HKEY,JSON.stringify({v:1,u:HIST.u,r:HIST.r}));return}catch(e){}
+    if(k<3){HIST.u=HIST.u.slice(Math.ceil(HIST.u.length/2));HIST.r=HIST.r.slice(Math.ceil(HIST.r.length/2))}}
+  try{localStorage.removeItem(HKEY)}catch(e){}}
+// Al abrir: si está roto o los datos cambiaron por fuera (otra versión de la app, un import), el historial se descarta entero
+function loadHist(){HIST={u:[],r:[]};let o;try{o=JSON.parse(localStorage.getItem(HKEY))}catch(e){return}
+  const str=s=>s===null||typeof s==="string",obj=x=>!!x&&typeof x==="object";
+  const pj=(s,f)=>{try{return f(JSON.parse(s))}catch(e){return false}};
+  const rd=(s,id)=>s===null||pj(s,r=>obj(r)&&r.id===id&&Array.isArray(r.players)&&Array.isArray(r.d));
+  const ok=e=>obj(e)&&typeof e.t==="string"&&(e.k==null||typeof e.k==="string")&&(e.go==null||obj(e.go)&&typeof e.go.id==="string"&&Number.isInteger(e.go.h))
+    &&Array.isArray(e.ch)&&e.ch.every(c=>obj(c)&&typeof c.id==="string"&&str(c.b)&&str(c.a)&&Number.isInteger(c.bi)&&Number.isInteger(c.ai)&&rd(c.b,c.id)&&rd(c.a,c.id))
+    &&(e.cs==null||obj(e.cs)&&typeof e.cs.b==="string"&&typeof e.cs.a==="string"&&pj(e.cs.b,Array.isArray)&&pj(e.cs.a,Array.isArray))
+    &&(e.me==null||obj(e.me)&&str(e.me.b)&&str(e.me.a));
+  if(!obj(o)||o.v!==1||!Array.isArray(o.u)||!Array.isArray(o.r)||!o.u.every(ok)||!o.r.every(ok))return;
+  const[e,side]=o.u.length?[o.u[o.u.length-1],"a"]:o.r.length?[o.r[o.r.length-1],"b"]:[null,null];
+  if(e&&(e.ch.some(c=>((HB.m.get(c.id)||{}).j??null)!==c[side])||e.cs&&e.cs[side]!==HB.cs||e.me&&e.me[side]!==HB.me))return;
+  HIST={u:o.u.slice(-HMAX),r:o.r}}
+// Etiqueta, clave de grupo y hoyo de cada acción de onClick que cambia datos (null: las demás)
+const CELLK={s:"s",sset:"s",pt:"pt",pen:"pen",fw:"fw",bk:"bk",g1:"pd",gc:"ch",gm:"ms"};
+const CELLT={s:"score",pt:"putts",pen:"penalidades",fw:"drive",bk:"bunker",pd:"primer putt",ch:"golpes cerca del green",ms:"green errado"};
+function actOf(a,v,r,h,p){const one=t=>({t,k:null,go:null}),byId=id=>S.rounds.find(x=>x.id===id);
+  if(r&&h!=null){const go={id:r.id,h},n=h+1;
+    if(has(CELLK,a)&&r.players[p]!=null)return{t:`${CELLT[CELLK[a]]} de ${nm(r,p)} en el hoyo ${n}`,k:`${r.id}|${h}|${p}|${CELLK[a]}`,go};
+    if(a==="wolf")return{t:`lobo del hoyo ${n}`,k:null,go};
+    if(a==="bbb")return{t:`Bingo Bango Bongo del hoyo ${n}`,k:null,go};
+    if(a==="grn")return{t:`greenie del hoyo ${n}`,k:null,go};
+    if(a==="out"&&r.players[p]!=null)return{t:`abandono de ${nm(r,p)}`,k:null,go}}
+  if(a==="close"||a==="reopen"){const t=v?byId(v):r;return t?one(`${a==="close"?"cerrar":"reabrir"} la vuelta del ${fmtDate(t.date)}`):null}
+  if(a==="delok"){const t=byId(v);return t?one(`borrar la vuelta del ${fmtDate(t.date)}`):null}
+  if((a==="insave"||a==="incopy")&&ui.incoming)return one(`vuelta compartida del ${fmtDate(ui.incoming.date)}`);
+  if(a==="cdelok"){const c=S.courses.find(x=>x.id===v);return c?one(`borrar la cancha ${c.name}`):null}
+  return null}
 
 /* ---------- vistas ---------- */
 /* ---------- lo que falta cargar ---------- */
@@ -1167,6 +1276,8 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     const d=x.s==null?null:x.s-par;const rc=d==null?"":d<0?"under":d===0?"par":"over";
     const step=`<div class="step"><button data-a="s" data-p="${p}" data-v="-1" aria-label="Restar golpe a ${esc(name)}">−</button><button class="val" data-a="sset" data-p="${p}" aria-label="Score de ${esc(name)}">${x.s??"–"}</button><button data-a="s" data-p="${p}" data-v="1" aria-label="Sumar golpe a ${esc(name)}">+</button></div>`;
     const gir=x.s!=null&&x.p!=null&&x.s-x.p<=par-2;const ss=x.bk&&x.s!=null&&x.s<=par;
+    // Fila de abajo: el botón del green y el link de abandono. Con el botón fijo, la tarjeta no salta al cargar el score
+    const gch=!S.focus||fullCard(r,p)||hasGreen(r,p),gt=greenTxt(x,par),quit=canOut?`<button class="quit" data-a="out" data-p="${p}">Abandonó en este hoyo</button>`:"";
     // El resultado del hoyo va al lado del nombre: así el score y los putts tienen la fila para ellos
     html+=`<div class="pcard"><div class="p-top"><div class="p-id"><div class="p-nl"><span class="p-name">${esc(name)}</span>${d==null?'<span class="note">tocá el número: par</span>':`<span class="rel ${rc}">${relName(d)}</span>`}${gir?'<span class="badge">GIR</span>':""}${ss?'<span class="badge">Sand save</span>':""}</div>${mixed?`<span class="p-tee">${teeDot(c,teeK(r,p))}${esc(TEEP(r,p).name)} · ${dist(c,teeK(r,p),h)} yd${PP(r,p)[h]!==c.par[h]?` · par ${PP(r,p)[h]}`:""}</span>`:""}</div><span class="p-tot">${totTxt}</span></div>
     <div class="score-row">${step}
@@ -1174,11 +1285,11 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     ${S.focus&&!fullCard(r,p)?"":`<div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
-     </div>`}${canOut?`<button class="quit" data-a="out" data-p="${p}">Abandonó en este hoyo</button>`:""}</div>`});
+     </div>`}${gch?`<div class="gline"><button type="button" class="gchip${gt?" on":""}" data-a="gopen" data-p="${p}" aria-label="Datos de green de ${esc(name)}">${gt?"Green · "+esc(gt):"+ Green"}</button>${quit}</div>`:quit}</div>`});
   html+=`${S.focus?"</div>":""}</fieldset>${courseMap(c)&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${courseMap(c)[0]}" alt="${courseMap(c)[1]}"></details>`:""}
   ${S.focus?'<div class="fbar">':""}${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>${S.focus?"</div>":""}
-  ${S.focus?"":`<p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor.</p>`}</div>`;
+  ${S.focus?"":`<p class="note">El score es el total del hoyo con las penalidades incluidas; Penal. es para las estadísticas. El GIR se calcula con el score y los putts. Sand save = estuvo en bunker e hizo par o mejor. Green: primer putt, golpes desde menos de 50 m y para qué lado erraste el green. Son opcionales.</p>`}</div>`;
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
 function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab}</td><td>${l.reduce((a,h)=>a+P(r)[h],0)}</td>${r.players.map((_,p)=>{const v=l.map(h=>sc(r,h,p)).filter(x=>x!=null);return`<td>${v.length?v.reduce((a,b)=>a+b,0):"–"}</td>`}).join("")}</tr>`;
@@ -1412,6 +1523,18 @@ async function roundImage(r){const W=1080,pad=64,ip=44,gv=getVar,disp=gv("--disp
 function openImage(t){if(!stats(t,t.me!=null?t.me:0).n){toast("Todavía no hay scores para mostrar");return}toast("Armando la imagen…");
   roundImage(t).then(cv=>new Promise(res=>cv.toBlob(res,"image/png"))).then(bl=>{if(!bl)throw 0;closeImg();ui.img={blob:bl,url:URL.createObjectURL(bl),name:`mulligan-${t.date}.png`};render()}).catch(()=>toast("No se pudo armar la imagen"))}
 function closeImg(){if(ui.img)URL.revokeObjectURL(ui.img.url);ui.img=null}
+// Hoja del green: fichas de un toque; tocar la elegida la saca. Lo que no vale (D3) queda guardado pero deshabilitado
+const PD_OPTS=[1,2,3,4,5,6,7,8,9,10,12,15,20,25,30],CH_OPTS=[0,1,2,3,4,5];
+function vGreen(){const r=R();if(ui.gs==null||S.view!=="hole"||!r||r.closed||!r.players[ui.gs])return"";
+  const p=ui.gs,h=hs(r)[Math.min(r.cur,r.n-1)],x=r.d[h][p],par=PP(r,p)[h],noP=x.p===0,isG=gir(x,par);
+  const chip=(a,v,t,on,off,cl)=>`<button type="button" class="chip${cl?" "+cl:""}" data-a="${a}" data-p="${p}" data-v="${v}" aria-pressed="${on}"${off?" disabled":""}>${t}</button>`;
+  return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="greenT"><div class="sheet-bg" data-a="gclose"></div><div class="sheet-p">
+  <div class="grab"></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h2 id="greenT">Green · ${esc(nm(r,p))} · hoyo ${h+1}</h2><button class="btn small" data-a="gclose">Listo</button></div>
+  <div class="gsec" role="group" aria-label="Primer putt (pasos)"><span class="label">Primer putt (pasos)</span><div class="gpick">${PD_OPTS.map(n=>chip("g1",n,n,x.pd===n,noP)).join("")}</div>${noP?'<p class="note">Sin putts en este hoyo.</p>':""}</div>
+  <div class="gsec" role="group" aria-label="Golpes cerca del green"><div class="gh"><span class="label">Golpes cerca del green</span><span class="note">desde menos de 50 m, sin contar los putts</span></div><div class="gpick c6">${CH_OPTS.map(n=>chip("gc",n,n,x.ch===n,false)).join("")}</div></div>
+  <div class="gsec" role="group" aria-label="Green errado"><div class="gh"><span class="label">Green errado</span><span class="note">solo si no llegó en regulación</span></div>
+   <div class="gcross">${chip("gm","largo","Largo",x.ms==="largo",isG,"gt")}${chip("gm","izq","Izq.",x.ms==="izq",isG,"gl")}<span class="gdot" aria-hidden="true"></span>${chip("gm","der","Der.",x.ms==="der",isG,"gr")}${chip("gm","corto","Corto",x.ms==="corto",isG,"gb")}</div>${isG?'<p class="note">Llegó al green en regulación.</p>':""}</div>
+  </div></div>`}
 function vImg(){if(!ui.img)return"";
   return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT"><div class="sheet-bg" data-a="imgclose"></div><div class="sheet-p">
   <div class="grab"></div><div class="row" style="justify-content:space-between"><h2 id="imgT">Imagen de la vuelta</h2><button class="btn small" data-a="imgclose">Cerrar</button></div>
@@ -1558,7 +1681,7 @@ function saveCourse(){readCDraft();const d=ui.cdraft,fail=m=>{ui.cErr=m;render()
   d.tees.forEach(t=>{const x={name:t.name,color:t.color,m:t.m.map(num)};if(t.own){x.par=t.par.map(Number);x.si=t.si.map(num)}tees[t.k]=x});
   const c=cleanCourse({id:d.id||"c"+Date.now().toString(36),name:d.name,club:d.club,unit:d.unit,par:d.par.map(Number),si:d.si.map(num),tees,def:d.def,sport:d.sport});
   const i=S.courses.findIndex(x=>x.id===c.id);if(i>=0)S.courses[i]=c;else S.courses.push(c);
-  const toSetup=d.back==="setup"&&ui.draft;if(toSetup)setDraftCourse(ui.draft,c);
+  const toSetup=d.back==="setup"&&ui.draft;if(toSetup)setDraftCourse(ui.draft,c);ui.act={t:`cancha ${c.name}`,k:null,go:null};
   S.view=toSetup?"setup":"rounds";ui.cdraft=null;ui.cErr="";save();render();window.scrollTo(0,0);toast("Cancha guardada")}
 // Listado en Vueltas: una cancha con vueltas no se puede borrar
 function vCourses(){const cs=courses();
@@ -1581,7 +1704,9 @@ async function unpack(s){const u=b64u.dec(s.slice(1));
   const raw=s[0]==="z"?await pipeBytes(u,new DecompressionStream("deflate-raw")):s[0]==="j"?u:null;if(!raw)throw 0;return JSON.parse(new TextDecoder().decode(raw))}
 // Sin "me": quién es quién lo elige cada uno al abrir el link. La cancha viaja entera salvo que sea la de fábrica sin cambios
 const shareObj=r=>({v:1,course:CRS(r).id,c:JSON.stringify(CRS(r))===JSON.stringify(BUILTIN)?undefined:CRS(r),id:r.id,date:r.date,tee:r.tee,tees:r.players.map((_,p)=>teeK(r,p)),n:r.n,start:r.start,players:r.players,teams:r.teams,closed:!!r.closed,
-  games:GAMES.map(g=>g[0]).filter(k=>r.games[k]),wolf:r.wolf||{},bbb:r.bbb||{},grn:r.grn||{},out:r.out||{},d:r.d.map(h=>h.map(x=>[x.s,x.p,x.fw,x.pen||0,x.bk?1:0]))});
+  games:GAMES.map(g=>g[0]).filter(k=>r.games[k]),wolf:r.wolf||{},bbb:r.bbb||{},grn:r.grn||{},out:r.out||{},
+  // Los datos del green van en las posiciones 5 a 7, solo en las celdas que tienen alguno (la versión vieja lee solo 0 a 4)
+  d:r.d.map(h=>h.map(x=>{const c=[x.s,x.p,x.fw,x.pen||0,x.bk?1:0];return has(x,"pd")||has(x,"ch")||has(x,"ms")?[...c,x.pd??null,x.ch??null,x.ms??null]:c}))});
 // Lo que llega por link no es de confianza: se reconstruye la vuelta con valores válidos
 // Devuelve [vuelta, cancha que trajo el link o null]; los links de antes de las canchas son de la Cancha Nueva
 function cleanShared(o){if(!o||o.v!==1)throw 0;
@@ -1591,7 +1716,8 @@ function cleanShared(o){if(!o||o.v!==1)throw 0;
   const np=players.length,ok=i=>Number.isInteger(i)&&i>=0&&i<np,int=(x,a,b)=>Number.isInteger(x)&&x>=a&&x<=b?x:null;
   const teams=[0,1].map(t=>Array.isArray(o.teams)&&Array.isArray(o.teams[t])?[...new Set(o.teams[t].filter(ok))]:[]);
   const d=Array.from({length:18},(_,h)=>players.map((_,p)=>{const c=Array.isArray(o.d)&&Array.isArray(o.d[h])&&Array.isArray(o.d[h][p])?o.d[h][p]:[];
-    return{s:int(c[0],1,15),p:int(c[1],0,6),fw:["c","l","r"].includes(c[2])?c[2]:null,pen:int(c[3],0,6)||0,bk:c[4]===1}}));
+    const x={s:int(c[0],1,15),p:int(c[1],0,6),fw:["c","l","r"].includes(c[2])?c[2]:null,pen:int(c[3],0,6)||0,bk:c[4]===1};
+    ["pd","ch","ms"].forEach((k,i)=>{const g=GV[k](c[5+i]);if(g!=null)x[k]=g});return x}));
   const games={};GAMES.forEach(([k])=>games[k]=Array.isArray(o.games)&&o.games.includes(k));if(games.fourball&&teams.every(t=>t.length===1))games.rr=true;
   const wolf={};if(o.wolf&&typeof o.wolf==="object")Object.entries(o.wolf).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(v==="lone"||v==="blind"||ok(v)))wolf[k]=v});
   const bbb={},grn={};
@@ -1645,15 +1771,20 @@ function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==
     return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
   <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
   <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
-function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg()+vGreen();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
+  // Deshacer y rehacer: sin nada en la pila, o con un formulario abierto (el borrador se pisaría), quedan deshabilitados
+  const lock=["setup","course","incoming"].includes(v);[["undo","u","Deshacer"],["redo","r","Rehacer"]].forEach(([id,k,w])=>{const bt=document.getElementById(id);if(!bt)return;
+    const st=HIST[k],t=st.length?`${w}: ${st[st.length-1].t}`:w;bt.disabled=lock||!st.length;bt.title=t;bt.setAttribute("aria-label",t)});
   document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||((v==="setup"||v==="course")&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
   const nv=document.querySelector("nav.tabs");if(nv)document.documentElement.style.setProperty("--tabsh",nv.offsetHeight+"px");
   app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
-  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out"].includes(a))return;
+  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen"].includes(a))return;
   if(S.view==="course")readCDraft();const cd=ui.cdraft;
+  // Para deshacer: qué cambio es este y si sigue el grupo del toque anterior (solo los controles de una celda)
+  ui.act=actOf(a,v,r,h,p);if(!has(CELLK,a))ui.grp=null;
   switch(a){
    case"cnew":openCourse(null,"rounds");scrollTop=true;break;
    case"copen":openCourse(v,"rounds");scrollTop=true;break;
@@ -1671,14 +1802,21 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      // si el nombre era el del color, cambia con él
      if(!t.name.trim()||TPAL.some(x=>x[0]===t.name.trim()))t.name=nx[0];t.color=nx[1];break}
    case"cdef":cd.def=cd.tees[+v].k;break;
-   case"tab":S.view=v;ui.setupErr="";scrollTop=true;break;
-   case"go":if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
+   case"tab":S.view=v;ui.setupErr="";ui.gs=null;scrollTop=true;break;
+   case"go":ui.gs=null;if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
    case"pen":x.pen=Math.max(0,Math.min(6,(x.pen||0)+(+v)));break;
    case"fw":x.fw=x.fw===v?null:v;break;
    case"bk":x.bk=!x.bk;break;
+   case"g1":setG(x,"pd",x.pd===+v?null:GV.pd(+v));break;
+   case"gc":setG(x,"ch",x.ch===+v?null:GV.ch(+v));break;
+   case"gm":setG(x,"ms",x.ms===v?null:GV.ms(v));break;
+   case"gopen":if(!r||!r.players[p]||!inPlay(r,h,p))return;ui.gs=p;break;
+   case"gclose":ui.gs=null;break;
+   case"undo":undo();return;
+   case"redo":redo();return;
    case"wolf":{const val=v==="lone"||v==="blind"?v:+v;r.wolf[h]=r.wolf[h]===val?null:val;break}
    case"bbb":{r.bbb=r.bbb||{};const t=r.bbb[h]||[null,null,null];t[+v]=t[+v]===p?null:p;r.bbb[h]=t;break}
    case"grn":r.grn=r.grn||{};r.grn[h]=r.grn[h]===p?null:p;break;
@@ -1730,10 +1868,11 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      try{navigator.clipboard.writeText(t.value).then(()=>{done();markBackup();save()},()=>{t.select();b.textContent="Seleccionado: copialo"})}catch(err){t.select();b.textContent="Seleccionado: copialo"}return}
    case"impok":doImport(document.getElementById("imp-text").value);break;
    default:return}
-  if(["s","sset","pt","pen","fw","bk","go","wolf","bbb","grn"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
+  if(["s","sset","pt","pen","fw","bk","go","wolf","bbb","grn","g1","gc","gm"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
   save();render();if(scrollTop)window.scrollTo(0,0)}
 function doImport(txt){try{const j=JSON.parse(txt);if(!j||!Array.isArray(j.rounds)||!j.rounds.length||!j.rounds.every(r=>r.d&&r.players))throw 0;
-  S=norm(j);markBackup();if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr=""}
+  S=norm(j);markBackup();if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr="";
+  HIST={u:[],r:[]};ui.grp=null;histBase();saveHist()}
   catch(e){ui.impErr="El texto no es una copia válida de la app. Pegá el texto completo que exportaste."}}
 function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();return}if(e.target.id!=="setup")return;e.preventDefault();readDraft();const d=ui.draft;
   const players=d.players.map(p=>p.name.trim());
@@ -1749,10 +1888,10 @@ function onSubmit(e){if(e.target.id==="cform"){e.preventDefault();saveCourse();r
       r.grn=Object.fromEntries(Object.entries(r.grn||{}).map(([h,v])=>[h,v===-1?-1:to(v)]).filter(e=>e[1]!=null));
       r.out=Object.fromEntries(Object.entries(r.out||{}).map(([p,h])=>[to(+p),h]).filter(e=>e[0]!=null))}
     Object.assign(r,{course,date:d.date||r.date,players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games,tee,tees,me:meI});r.cur=Math.min(r.cur,r.n-1);S.cur=r.id;
-    if(r.out)Object.keys(r.out).forEach(p=>{if(!hs(r).includes(r.out[p]))delete r.out[p]})}
+    if(r.out)Object.keys(r.out).forEach(p=>{if(!hs(r).includes(r.out[p]))delete r.out[p]});ui.act={t:`cambios en la vuelta del ${fmtDate(r.date)}`,k:null,go:null}}
     S.view="games";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0);return}
   const r=newRound({date:d.date||todayIso(),players,teams:[A,B],start:d.holes==="back"?9:0,n:d.holes==="18"?18:9,games});r.course=course;r.tee=tee;r.tees=tees;r.me=meI;
-  S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;save();render();window.scrollTo(0,0)}
+  S.rounds.push(r);S.cur=r.id;S.view="hole";ui.setupErr="";ui.draft=null;ui.act={t:`vuelta nueva del ${fmtDate(r.date)}`,k:null,go:null};save();render();window.scrollTo(0,0)}
 function onChange(e){
   if(e.target.id==="histsel"){S.histRound=e.target.value||null;save();render();return}
   if(e.target.id==="su-holes"&&ui.draft){readDraft();render();return}
@@ -1763,10 +1902,12 @@ function onChange(e){
   if(e.target.id==="ce-own"&&ui.cdraft){readCDraft();const d=ui.cdraft,t=d.tees[d.sel];t.own=!t.own;
     if(t.own&&!t.par.length){t.par=d.par.slice();t.si=d.si.slice()}render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
-function init(){S=load();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
-  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img)){ui.themes=false;closeImg();render()}
+function init(){S=load();histBase();loadHist();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
+  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img||ui.gs!=null)){ui.themes=false;closeImg();ui.gs=null;render()}
     if((e.key==="ArrowUp"||e.key==="ArrowDown")&&e.target.classList&&e.target.classList.contains("grip")){e.preventDefault();const i=+e.target.dataset.v,t=i+(e.key==="ArrowUp"?-1:1);movePlayer(i,t);const g=document.querySelector(`.grip[data-v="${t}"]`);if(g)g.focus()}cKey(e)});
   document.addEventListener("input",cInput);
+  // El historial de deshacer se guarda al pasar a segundo plano: en la cancha la app se cierra sin aviso
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveHist()});window.addEventListener("pagehide",()=>saveHist());
   document.addEventListener("pointerdown",onGripDown);document.addEventListener("pointermove",onGripMove);document.addEventListener("pointerup",onGripUp);document.addEventListener("pointercancel",onGripUp);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
   const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.mode==="sistema")render()})}catch(e){}
@@ -1800,9 +1941,9 @@ function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;r
 function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
-  ui.dir=Math.sign(k-r.cur);r.cur=k;vib(8);save();render();window.scrollTo(0,0)}
+  ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="f70ecc6004";
+const VERSION="9c004d10af";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
