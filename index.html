@@ -649,6 +649,27 @@ table.cedit input.own{border-color:var(--accent)}
 .gcross .gdot{grid-column:2;grid-row:2;justify-self:center;width:44px;height:44px;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent)}
 .sheet .chip:disabled{opacity:.4}
 .icon-btn:disabled{opacity:.35;cursor:default}
+/* golpes con GPS: la barra arriba del hoyo (una fila: el botón y el resumen) y la hoja de golpes */
+.gpsbar{display:flex;flex-direction:column;gap:6px;min-width:0}
+.gpsline{display:flex;align-items:center;gap:8px;min-width:0}
+.gpsbtn{flex:none;height:40px;border:0;border-radius:999px;padding:0 14px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer}
+.gpsbtn:disabled{opacity:.45;cursor:default}
+.mg .gpsbtn{background:var(--blk);color:var(--on-blk)}
+.royal .gpsbtn{border-radius:2px;background:var(--forest);color:var(--cream);font-size:16px}
+.gpssum{flex:1 1 auto;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gpsline .gchip{height:40px}
+span.gpssum{font-size:14px;line-height:40px;color:var(--muted);padding:0 4px}
+.gpsmsg{margin:0;font-size:13px;color:var(--red)}
+.gpsrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"n ac yd" "k k del";align-items:center;gap:8px 10px;padding-top:10px;border-top:1px solid var(--line);font-size:14px}
+.gpsn{grid-area:n;display:flex;align-items:center;gap:8px;font-weight:700;white-space:nowrap}
+.gpsac{grid-area:ac;color:var(--muted);white-space:nowrap}
+.gpsyd{grid-area:yd;min-width:0;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gpsrow .gpsk{grid-area:k;justify-self:start}
+.gpsrow .gpsdel{grid-area:del;justify-self:end}
+.gpclubs{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.gpclubs .chip{height:40px;padding:0 4px;min-width:0}
+.royal .gpsrow{border-top-color:var(--leaf)}
+.gpsst .g-lines{margin-top:6px}
 /* orden de los jugadores */
 .grip{flex:none;display:grid;place-items:center;width:18px;height:44px;margin:0 -2px 0 -4px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
 .grip:active{cursor:grabbing}
@@ -772,6 +793,20 @@ const MS=["corto","largo","izq","der"];
 const GV={pd:v=>intIn(v,1,99),ch:v=>intIn(v,0,9),ms:v=>MS.includes(v)?v:null};
 function cleanGreen(x){if(x&&typeof x==="object")Object.keys(GV).forEach(k=>{if(has(x,k)&&GV[k](x[k])==null)delete x[k]});return x}
 function setG(x,k,v){if(v==null)delete x[k];else x[k]=v}
+// Marcas de golpe con GPS por celda, solo de "Yo": gps = [{n número de golpe, la, lo, ac precisión en m, t hora en ms, c palo?}],
+// ordenadas por n y sin n repetidos. Sin marcas = la clave no está (nunca [] ni null)
+const CLUBS=[["dr","Driver","Dr"],["m3","Madera 3","M3"],["m5","Madera 5","M5"],["m7","Madera 7","M7"],["h3","Híbrido 3","H3"],["h4","Híbrido 4","H4"],["h5","Híbrido 5","H5"],
+ ["4","Hierro 4","4"],["5","Hierro 5","5"],["6","Hierro 6","6"],["7","Hierro 7","7"],["8","Hierro 8","8"],["9","Hierro 9","9"],["pw","PW","PW"],["gw","GW","GW"],["sw","SW","SW"],["lw","LW","LW"]];
+const GPS_AC=20,GPS_TO=20000,GPS_GUARD=30000,GPS_OLD=30000,GPS_MAXN=15;
+const clubOf=c=>CLUBS.find(k=>k[0]===c)||null;
+const numIn=(v,a,b)=>typeof v==="number"&&Number.isFinite(v)&&v>=a&&v<=b;
+// Lo que viene de afuera solo se valida (no se redondea): la marca inválida se descarta, el palo inválido se saca
+function cleanGps(x){if(!x||typeof x!=="object"||!has(x,"gps"))return x;if(!Array.isArray(x.gps)){delete x.gps;return x}
+  const seen=new Set(),out=[];
+  x.gps.forEach(m=>{if(!m||typeof m!=="object"||Array.isArray(m))return;
+    if(intIn(m.n,1,GPS_MAXN)==null||!numIn(m.la,-90,90)||!numIn(m.lo,-180,180)||!numIn(m.ac,0,100000)||!Number.isInteger(m.t)||m.t<0||seen.has(m.n))return;
+    seen.add(m.n);if(has(m,"c")&&!clubOf(m.c))delete m.c;out.push(m)});
+  out.sort((a,b)=>a.n-b.n);if(out.length)x.gps=out;else delete x.gps;return x}
 const distOk=v=>typeof v==="number"?intIn(v,1,999):typeof v==="string"&&/^\d{1,3}(\/\d{1,3})?$/.test(v)?v:null;
 const arr18=(a,f)=>Array.from({length:18},(_,h)=>f(Array.isArray(a)?a[h]:null));
 function cleanCourse(o){if(!o||typeof o!=="object"||typeof o.id!=="string"||!/^[\w-]{1,40}$/.test(o.id))return null;
@@ -956,6 +991,26 @@ const MSTXT={corto:"corto",largo:"largo",izq:"izquierda",der:"derecha"};
 function greenTxt(x,par){const g=greenOf(x,par);
   return[g.pd!=null?g.pd+(g.pd===1?" paso":" pasos"):"",g.ch!=null?g.ch+" cerca":"",g.ms!=null?MSTXT[g.ms]:""].filter(Boolean).join(" · ")}
 const hasGreen=(r,p)=>hs(r).some(h=>{const x=r.d[h][p];return!!x&&(has(x,"pd")||has(x,"ch")||has(x,"ms"))});
+// Yardas enteras en línea recta entre dos marcas (haversine), con el mismo factor metro→yarda que yd()
+function gpsYd(a,b){const rad=Math.PI/180,df=(b.la-a.la)*rad,dl=(b.lo-a.lo)*rad;
+  const s=Math.sin(df/2)**2+Math.cos(a.la*rad)*Math.cos(b.la*rad)*Math.sin(dl/2)**2;
+  return Math.round(2*6371008.8*Math.asin(Math.min(1,Math.sqrt(s)))*1.09361)}
+// Largo del hoyo h desde la salida de p, en yardas; con dos distancias ("465/500") la segunda, como totYd
+const holeYd=(r,p,h)=>{const c=CRS(r),t=c.tees[teeK(r,p)],n=t?parseInt(String(t.m[h]??"").split("/").pop()):NaN;return n>0?(c.unit==="yd"?n:Math.round(n*1.09361)):null};
+// Golpes medidos: de una marca a la del número siguiente. Cuál cuenta para las stats lo dice why (null = cuenta).
+// Las marcas no se borran solas: toda stat con marcas pasa por acá
+function shotsOf(r,h,p){const x=r.d[h]&&r.d[h][p];if(!x||!Array.isArray(x.gps))return[];const g=[...x.gps].sort((a,b)=>a.n-b.n),out=[];
+  for(let i=0;i+1<g.length;i++){const a=g[i],b=g[i+1];if(b.n!==a.n+1)continue;
+    const why=x.s==null||x.p==null?"falta":b.n>x.s?"despues":a.n>x.s-x.p?"putt":a.ac>GPS_AC||b.ac>GPS_AC?"impreciso":null;
+    out.push({n:a.n,yd:gpsYd(a,b),c:a.c??null,tee:a.n===1,ok:why===null,why})}
+  return out}
+// Resumen de la barra: cuántas marcas y el último golpe medido (mientras se juega todavía no hay score: se mira la precisión)
+function gpsTxt(x){const g=x&&Array.isArray(x.gps)?[...x.gps].sort((a,b)=>a.n-b.n):[];if(!g.length)return"";let t=g.length+(g.length===1?" marca":" marcas");
+  for(let i=g.length-2;i>=0;i--)if(g[i+1].n===g[i].n+1){t+=` · golpe ${g[i].n}: ${gpsYd(g[i],g[i+1])} yd${g[i].ac>GPS_AC||g[i+1].ac>GPS_AC?" (impreciso)":""}`;break}
+  return t}
+const hasGps=(r,p)=>hs(r).some(h=>{const x=r.d[h][p];return!!x&&has(x,"gps")});
+// La celda de "Yo" en el hoyo h si ahí se pueden marcar golpes: hay "Yo", sigue en juego y no es footgolf
+const gpsMe=(r,h)=>r&&h!=null&&r.me!=null&&r.players[r.me]!=null&&inPlay(r,h,r.me)&&!isFoot(CRS(r))?r.d[h][r.me]:null;
 const PH={
  // quien abandonó suma −3 en cada hoyo que no jugó, para que abandonar nunca convenga (P2)
  stab2:{f:(r,h)=>{if(!r.d[h].some(x=>x.s!=null))return null;return r.players.map((_,p)=>{const s=sc(r,h,p);if(s==null)return inPlay(r,h,p)?null:-3;const d=s-PP(r,p)[h];return d<=-3?8:d===-2?5:d===-1?2:d===0?0:d===1?-1:-3})}},
@@ -1122,7 +1177,7 @@ const pct=(a,b)=>b?Math.round(a/b*100)+"%":"–";
 let S;
 const migrate=r=>{if(r.games&&r.games.fourball&&r.teams&&r.teams.every(t=>t.length===1)&&!("rr"in r.games))r.games.rr=true;if(!r.course)r.course=BUILTIN.id;return r};
 // Los datos de antes de las canchas no traen ninguna: arrancan con la Cancha Nueva, que es donde se jugaron
-function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEach(h=>{if(Array.isArray(h))h.forEach(cleanGreen)})});const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
+function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEach(h=>{if(Array.isArray(h))h.forEach(x=>cleanGps(cleanGreen(x)))})});const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
   j.courses=cs.filter((c,i)=>cs.findIndex(x=>x.id===c.id)===i);
   // Antes se llamaba solo "Cancha Nueva": si nadie le cambió el nombre, pasa al nuevo
   j.courses.forEach(c=>{if(c.id===BUILTIN.id&&c.name==="Cancha Nueva")c.name=BUILTIN.name});
@@ -1135,7 +1190,7 @@ function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&Array.is
   return{rounds:[],courses:FACTORY.map(clone),seeded:FACTORY.map(f=>f.id),cur:null,view:"rounds",statsP:0}}
 function save(){track();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const R=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
-let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:"",gs:null,grp:null,act:null};
+let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:"",gs:null,grp:null,act:null,shots:false,gpc:null,gpsBusy:null,gpsMsg:null};
 
 /* ---------- deshacer y rehacer ---------- */
 // Todo cambio de datos pasa por save(): track() compara cada vuelta (sin r.cur), las canchas y S.meName con la foto anterior
@@ -1175,7 +1230,7 @@ function histStep(from,to,side,word){const e=HIST[from].pop();if(!e)return false
   const g=e.go&&S.rounds.find(r=>r.id===e.go.id);
   if(g){S.cur=g.id;S.view="hole";const i=hs(g).indexOf(e.go.h);if(i>=0)g.cur=i}
   else if(!S.rounds.some(r=>r.id===S.cur)){const f=e.ch.map(c=>S.rounds.find(r=>r.id===c.id)).find(Boolean)||S.rounds[0];S.cur=f?f.id:null;if(S.view==="hole"||S.view==="card")S.view="rounds"}
-  ui.gs=null;ui.grp=null;ui.act=null;ui.pendingDel=null;ui.warned=null;histBase();save();render();
+  ui.gs=null;ui.shots=false;ui.grp=null;ui.act=null;ui.pendingDel=null;ui.warned=null;histBase();save();render();
   if(S.view!==v0||S.cur!==c0)window.scrollTo(0,0);toast(`${word}: ${e.t}`);return true}
 function undo(){return histStep("u","r","b","Deshecho")}
 function redo(){return histStep("r","u","a","Rehecho")}
@@ -1199,9 +1254,12 @@ function loadHist(){HIST={u:[],r:[]};let o;try{o=JSON.parse(localStorage.getItem
 // Etiqueta, clave de grupo y hoyo de cada acción de onClick que cambia datos (null: las demás)
 const CELLK={s:"s",sset:"s",pt:"pt",pen:"pen",fw:"fw",bk:"bk",g1:"pd",gc:"ch",gm:"ms"};
 const CELLT={s:"score",pt:"putts",pen:"penalidades",fw:"drive",bk:"bunker",pd:"primer putt",ch:"golpes cerca del green",ms:"green errado"};
-function actOf(a,v,r,h,p){const one=t=>({t,k:null,go:null}),byId=id=>S.rounds.find(x=>x.id===id);
+// Las marcas de GPS (gpc, gpn, gpsdel) son de la celda de "Yo"; i es el índice de la marca y n su número antes del cambio
+function actOf(a,v,r,h,p,i){const one=t=>({t,k:null,go:null}),byId=id=>S.rounds.find(x=>x.id===id);
   if(r&&h!=null){const go={id:r.id,h},n=h+1;
     if(has(CELLK,a)&&r.players[p]!=null)return{t:`${CELLT[CELLK[a]]} de ${nm(r,p)} en el hoyo ${n}`,k:`${r.id}|${h}|${p}|${CELLK[a]}`,go};
+    if(a==="gpc"||a==="gpn"||a==="gpsdel"){const x=gpsMe(r,h),g=x&&x.gps&&x.gps[i];if(!g)return null;const j=nm(r,r.me),q=`${r.id}|${h}|${r.me}|`;
+      return a==="gpc"?{t:`palo del golpe ${g.n} de ${j} en el hoyo ${n}`,k:q+"gpc"+i,go}:a==="gpn"?{t:`número de golpe de ${j} en el hoyo ${n}`,k:q+"gpn",go}:{t:`borrar el golpe ${g.n} de ${j} en el hoyo ${n}`,k:null,go}}
     if(a==="wolf")return{t:`lobo del hoyo ${n}`,k:null,go};
     if(a==="bbb")return{t:`Bingo Bango Bongo del hoyo ${n}`,k:null,go};
     if(a==="grn")return{t:`greenie del hoyo ${n}`,k:null,go};
@@ -1248,6 +1306,13 @@ function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0;let tot=0,tp=0,n=0;
   </section>`}
 // Quien no carga drive, penalidades ni bunker en esta vuelta los ve recién si los empieza a usar (vos, siempre)
 const fullCard=(r,p)=>p===r.me||needs(r).fw||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
+// Barra de GPS, arriba de todo en el hoyo: marcar el golpe de "Yo" y el resumen, que abre la hoja de golpes.
+// Con la vuelta cerrada se ve solo si hay marcas, y no se puede tocar
+function vGpsBar(r,h){const x=gpsMe(r,h);if(!x||r.closed&&!has(x,"gps"))return"";
+  const g=x.gps||[],nx=g.length?g[g.length-1].n+1:1,api=!!navigator.geolocation,busy=!!ui.gpsBusy,full=nx>GPS_MAXN,off=r.closed||!api||busy||full;
+  const sum=g.length?`<button type="button" class="gchip on gpssum" data-a="gpsopen"${r.closed?" disabled":""}>${esc(gpsTxt(x))}</button>`:`<span class="gpssum">Sin marcas en este hoyo</span>`;
+  const m=!api?"Este navegador no da la ubicación: no se pueden marcar golpes.":ui.gpsMsg&&ui.gpsMsg.id===r.id&&ui.gpsMsg.h===h?ui.gpsMsg.txt:"";
+  return`<div class="gpsbar"><div class="gpsline"><button type="button" class="gpsbtn" data-a="gps" aria-label="Marcar con GPS el golpe ${Math.min(nx,GPS_MAXN)} de ${esc(nm(r,r.me))}"${busy?' aria-busy="true"':""}${off?" disabled":""}>${busy?"Buscando GPS…":full?`${GPS_MAXN} golpes marcados`:`Pegué acá · golpe ${nx}`}</button>${sum}</div>${m?`<p class="gpsmsg" role="status">${esc(m)}</p>`:""}</div>`}
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
   let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">${vAway(r)}
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
@@ -1257,6 +1322,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
   ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
+  html+=vGpsBar(r,h);
   if(r.games.wolf&&r.players.length===4&&h<gcut(r,"wolf")){const w=k%4,dec=r.wolf[h];
     html+=`<div class="wolfbox"><div class="row" style="justify-content:space-between"><span><span class="label">Lobo</span> <b>${esc(nm(r,w))}</b></span><span class="note">elige compañero</span></div>
     <div class="row">${ids(r).filter(p=>p!==w).map(p=>`<button class="chip" data-a="wolf" data-v="${p}" aria-pressed="${dec===p}">${esc(nm(r,p))}</button>`).join("")}
@@ -1315,14 +1381,14 @@ function vGamesRound(r){const on=GAMES.filter(g=>r.games[g[0]]&&okR(g[0],r)),rc=
    <details class="rule"><summary>Cómo se juega</summary><p>${rule}</p></details></section>`}).join("")}</div>`}
 function vStatsRound(r,hist){const mk=meKey(),hp=hist?idxOf(r,S.histP,mk):-1,p=hist?(hp>=0?hp:r.me!=null?r.me:0):Math.min(S.statsP||0,r.players.length-1),o=stats(r,p);
   const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="${hist?"hp":"sp"}" data-v="${hist?esc(pk(r,i,mk)):i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
-  if(!o.n)return`<div class="stack">${chips}<p class="muted">${esc(nm(r,p))} todavía no tiene hoyos cargados.</p>${vHcp(nm(r,p),r.me===p)}</div>`;
+  if(!o.n)return`<div class="stack">${chips}<p class="muted">${esc(nm(r,p))} todavía no tiene hoyos cargados.</p>${vGpsStats([{r,p}])}${vHcp(nm(r,p),r.me===p)}</div>`;
   const grp=r.players.map((n,i)=>{const s=stats(r,i);return`<tr><td style="text-align:left">${esc(n)}</td><td>${s.n?s.s+" ("+toPar(s.s-s.par)+")":"–"}</td><td>${pct(s.fw,s.fwN)}</td><td>${pct(s.gir,s.girN)}</td><td>${s.pN?(s.putts/s.pN).toFixed(1).replace(".",","):"–"}</td></tr>`}).join("");
   return`<div class="stack">${chips}${statBlocks(o,tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`),tile("Penalidades",o.pen,"golpes de penalidad"))}
   <div class="label">Comparación del grupo</div>
   <div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Jugador</th><th>Score</th><th>FW</th><th>GIR</th><th>Putts/h</th></tr></thead><tbody>${grp}</tbody></table></div>
   <div class="tile"><div class="label">Sobre par, hoyo a hoyo</div><div class="chartwrap">${chToPar(r)}</div></div>
   ${doneH(r).length&&(okR("fourball",r)||r.players.length===2)?`<div class="tile"><div class="label">${okR("fourball",r)?"Four-ball":"Match play"}, hoyo a hoyo</div><div class="chartwrap">${okR("fourball",r)?chFourball(r):GCH.rr(r)}</div></div>`:""}
-  ${vHcp(nm(r,p),r.me===p)}</div>`}
+  ${vGpsStats([{r,p}])}${vHcp(nm(r,p),r.me===p)}</div>`}
 const tile=(lab,big,sub,bar)=>`<div class="tile"><div class="label">${lab}</div><div class="big">${big}</div><div class="sub">${sub}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:""}</div>`;
 // Fairways, GIR, putts, bunkers, distribución y promedio por tipo de hoyo (los dos primeros tiles los pone quien llama)
 function statBlocks(o,t1,t2){const avg=a=>a[1]?(a[0]/a[1]).toFixed(1).replace(".",","):"–";
@@ -1339,6 +1405,34 @@ function statBlocks(o,t1,t2){const avg=a=>a[1]?(a[0]/a[1]).toFixed(1).replace(".
    <div class="legend" style="margin-top:6px">${D.map(([k,l,c])=>`<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};margin-right:4px"></i>${l} ${o.dist[k]}</span>`).join("")}</div></div>
   <div class="tile"><div class="label">Promedio por tipo de hoyo</div><div class="row" style="justify-content:space-around;margin-top:6px">
    ${[3,4,5].map(t=>`<div style="text-align:center"><div class="big" style="font-size:26px">${avg(o.pt[t])}</div><div class="sub">Par ${t}</div></div>`).join("")}</div></div>`}
+// Distancias con GPS de una lista de {r, p}: solo golpes que cuentan (shotsOf), sin footgolf y mientras sigue en juego. stats() no cambia
+function gpsStats(list){const o={marks:0,tee:null,clubs:[],p5:null,got:{j:0,m:0},bad:0},tee=[],long=[],by=new Map(),p5=[];
+  const agg=a=>({n:a.length,avg:Math.round(a.reduce((s,v)=>s+v,0)/a.length),max:Math.max(...a)});
+  // "Llegaste al green en 2" se cuenta solo en las vueltas donde el jugador marcó algún golpe, para compararlo con "A tiro en 2"
+  (list||[]).forEach(({r,p})=>{if(!r||r.players[p]==null||isFoot(CRS(r)))return;const L=hs(r).filter(h=>inPlay(r,h,p)&&r.d[h][p]);
+    if(!L.some(h=>Array.isArray(r.d[h][p].gps)))return;
+    L.forEach(h=>{const x=r.d[h][p],par=PP(r,p)[h];
+      if(Array.isArray(x.gps))o.marks+=x.gps.length;
+      if(par===5&&x.s!=null&&x.p!=null){o.got.m++;if(x.s-x.p<=2)o.got.j++}
+      shotsOf(r,h,p).forEach(s=>{if(s.why==="impreciso")o.bad++;if(!s.ok)return;
+        if(!s.tee)long.push(s.yd);else{if(par>=4)tee.push(s.yd);const L=par===5?holeYd(r,p,h):null;if(L!=null)p5.push(L-s.yd)}
+        if(!by.has(s.c))by.set(s.c,[]);by.get(s.c).push(s.yd)})})});
+  if(tee.length)o.tee=agg(tee);
+  o.clubs=[...CLUBS.map(c=>c[0]),null].filter(k=>by.has(k)).map(k=>({c:k,...agg(by.get(k))}));
+  // Alcance: el promedio de los 3 golpes más largos que no son de salida
+  const reach=long.length>=3?Math.round([...long].sort((a,b)=>b-a).slice(0,3).reduce((s,v)=>s+v,0)/3):null;
+  o.p5={n:p5.length,rest:p5.length?Math.round(p5.reduce((s,v)=>s+Math.max(0,v),0)/p5.length):null,reach,k:reach==null?0:p5.filter(v=>v<=reach).length};
+  return o}
+function vGpsStats(list){const o=gpsStats(list);if(!o.marks)return"";const q=o.p5,row=(a,b)=>`<div><span>${a}</span><span>${b}</span></div>`;
+  const tab=o.clubs.length?`<div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Palo</th><th>Golpes</th><th>Prom.</th><th>Máx.</th></tr></thead><tbody>${o.clubs.map(c=>`<tr><td style="text-align:left">${c.c==null?"Sin palo":clubOf(c.c)[1]}</td><td>${c.n}</td><td>${c.avg}</td><td>${c.max}</td></tr>`).join("")}</tbody></table></div>`:"";
+  return`<div class="tile gpsst"><div class="label">Distancias con GPS</div>
+   <div class="g-lines">${row("Salida (par 4 y 5)",o.tee?`${o.tee.avg} yd de promedio · máxima ${o.tee.max} · ${o.tee.n} ${o.tee.n===1?"salida":"salidas"}`:"sin salidas medidas")}</div>${tab}
+   <div class="g-lines">${row("Resto al green en los par 5",q.n?`${q.rest} yd de promedio · ${q.n} ${q.n===1?"salida medida":"salidas medidas"}`:"sin salidas medidas en par 5")}
+    ${row("Alcance",q.reach!=null?`${q.reach} yd · promedio de tus 3 golpes más largos que no son de salida`:"faltan golpes: hacen falta 3 que no sean de salida")}
+    ${q.reach!=null&&q.n?row("A tiro en 2",`${q.k} de ${q.n} par 5 con salida medida`):""}
+    ${row("Llegaste al green en 2",o.got.m?`${o.got.j} de ${o.got.m} par 5 con score y putts`:"sin par 5 con score y putts")}</div>
+   ${o.bad?`<p class="note">${o.bad===1?"No cuenta 1 golpe":`No cuentan ${o.bad} golpes`} por GPS impreciso (más de ±20 m).</p>`:""}
+   <p class="note">Yardas en línea recta de una marca a la siguiente. El resto al green es estimado: el largo del hoyo en la tarjeta menos la salida.</p></div>`}
 
 /* ---------- historial ---------- */
 // Cada persona se identifica por su nombre; en las vueltas donde alguien se marcó "Yo", ese jugador es "vos" aunque el nombre cambie
@@ -1387,7 +1481,7 @@ function vStatsAll(){const ps=people();
     return`<tr><td style="text-align:left">${esc(h.name)}</td><td>${h.n}</td><td>${h.w}</td><td>${h.l}</td><td>${h.t}</td><td>${d===0?"=":(d<0?"−":"+")+fmt1(Math.abs(d))}</td></tr>`}).join("")}</tbody></table></div>
     <p class="note">Por golpes totales en las vueltas completas que jugaron juntos. Dif. es el promedio de golpes de ${esc(who.name)} contra cada uno: negativo, le saca ventaja.</p>`:"";
   const last=`<div class="label">Últimas vueltas</div><div class="g-lines">${rs.slice(0,12).map(e=>`<div><span>${fmtDate(e.r.date)} · ${crsLab(e.r)}${e.r.n===18?"18 hoyos":e.r.start===0?"Ida":"Vuelta"}${e.x.n<e.r.n?` · ${e.x.n} h`:""} · ${esc(TEEP(e.r,e.p).name)}</span><span>${e.x.s} (${toPar(e.x.s-e.x.par)})</span></div>`).join("")}</div>`;
-  return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${vs}${last}${vHcp(who.name,sel===mk)}</div>`}
+  return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${vs}${last}${vGpsStats(rs)}${vHcp(who.name,sel===mk)}</div>`}
 
 // Ganadores de cada juego en una vuelta terminada: [{pl:jugadores, w:ganadores}] (Snake: l = quien perdió)
 // El historial usa el mismo cálculo que la vista de la vuelta (H2): un solo lugar por juego
@@ -1545,6 +1639,51 @@ function vGreen(){const r=R();if(ui.gs==null||S.view!=="hole"||!r||r.closed||!r.
   <div class="gsec" role="group" aria-label="Green errado"><div class="gh"><span class="label">Green errado</span><span class="note">solo si no llegó en regulación</span></div>
    <div class="gcross">${chip("gm","largo","Largo",x.ms==="largo",isG,"gt")}${chip("gm","izq","Izq.",x.ms==="izq",isG,"gl")}<span class="gdot" aria-hidden="true"></span>${chip("gm","der","Der.",x.ms==="der",isG,"gr")}${chip("gm","corto","Corto",x.ms==="corto",isG,"gb")}</div>${isG?'<p class="note">Llegó al green en regulación.</p>':""}</div>
   </div></div>`}
+// Hoja de golpes: una fila por marca, con su número (− y + mueven también las que siguen), la distancia del golpe que
+// sale de ella, el palo y borrar. El selector de palos queda abierto para una sola marca (ui.gpc)
+function vShots(){const r=R();if(!ui.shots||S.view!=="hole"||!r||r.closed)return"";const h=hs(r)[Math.min(r.cur,r.n-1)],x=gpsMe(r,h);if(!x||!x.gps)return"";
+  const g=x.gps,up=g[g.length-1].n>=GPS_MAXN;
+  const rows=g.map((m,i)=>{const nx=g[i+1]&&g[i+1].n===m.n+1?g[i+1]:null,cl=clubOf(m.c),dn=m.n<=1||i>0&&m.n-1<=g[i-1].n;
+    return`<div class="gpsrow"><span class="gpsn">Golpe ${m.n}<span class="step sm"><button type="button" data-a="gpn" data-i="${i}" data-v="-1" aria-label="Restar uno al número del golpe ${m.n}"${dn?" disabled":""}>−</button><button type="button" data-a="gpn" data-i="${i}" data-v="1" aria-label="Sumar uno al número del golpe ${m.n}"${up?" disabled":""}>+</button></span></span>
+    <span class="gpsac">±${Math.round(m.ac)} m</span><span class="gpsyd">${nx?`${gpsYd(m,nx)} yd${m.ac>GPS_AC||nx.ac>GPS_AC?" (impreciso)":""}`:"–"}</span>
+    <button type="button" class="chip gpsk" data-a="gpk" data-i="${i}" aria-expanded="${ui.gpc===i}">${cl?"Palo: "+cl[1]:"Elegir palo"}</button><button type="button" class="btn small gpsdel" data-a="gpsdel" data-i="${i}" aria-label="Borrar el golpe ${m.n}">✕</button>
+    ${ui.gpc===i?`<div class="gpclubs" role="group" aria-label="Palo del golpe ${m.n}">${CLUBS.map(([k,t,f])=>`<button type="button" class="chip" data-a="gpc" data-i="${i}" data-v="${k}" aria-pressed="${m.c===k}" title="${t}">${f}</button>`).join("")}</div>`:""}</div>`}).join("");
+  return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shotsT"><div class="sheet-bg" data-a="gpsclose"></div><div class="sheet-p">
+  <div class="grab"></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h2 id="shotsT">Golpes · ${esc(nm(r,r.me))} · hoyo ${h+1}</h2><button class="btn small" data-a="gpsclose">Listo</button></div>
+  <div class="gsec">${rows}</div>${x.s!=null&&g.some(m=>m.n>x.s)?`<p class="note">Hay marcas después del golpe ${x.s} del score: no cuentan.</p>`:""}
+  <p class="note">La distancia de un golpe va de su marca a la del golpe siguiente, en línea recta. Si hubo una penalidad o te olvidaste de marcar un golpe, corregí el número: entre números que no siguen no se mide.</p>
+  </div></div>`}
+// Una lectura por toque, para "Yo" en el hoyo en pantalla. La respuesta se guarda en el hoyo y la vuelta donde se tocó;
+// la que llega tarde (otro pedido o después del corte de GPS_GUARD) se ignora
+const GMSG={denied:"Sin permiso de ubicación. Activalo para este sitio en los ajustes del navegador y probá de nuevo.",unavail:"No se pudo leer la ubicación. Probá de nuevo.",
+  timeout:"El GPS no respondió a tiempo. Probá de nuevo, mejor a cielo abierto.",old:"El teléfono dio una ubicación vieja. Probá de nuevo."};
+let gpsTok=0;
+function markShot(){if(ui.gpsBusy||!navigator.geolocation)return;const r=R();if(!r||r.closed||S.view!=="hole")return;
+  const h=hs(r)[Math.min(r.cur,r.n-1)],x=gpsMe(r,h);if(!x||x.gps&&x.gps[x.gps.length-1].n>=GPS_MAXN)return;
+  const tok=++gpsTok,id=r.id,at=Date.now(),me=pkey(nm(r,r.me)),live=()=>!!ui.gpsBusy&&ui.gpsBusy.tok===tok;
+  // La respuesta solo redibuja en la pantalla del hoyo: en otra (un formulario a medio escribir) no se pisa nada.
+  // El aviso fijo va solo si el hoyo tocado es el que está en pantalla; si no, sale como toast
+  const redraw=()=>{if(S.view==="hole")render()},here=()=>{const q=R();return S.view==="hole"&&!!q&&q.id===id&&hs(q)[Math.min(q.cur,q.n-1)]===h};
+  const fail=k=>{ui.gpsBusy=null;if(here())ui.gpsMsg={id,h,txt:GMSG[k]};else toast(GMSG[k]);redraw();vib([20,40,20])};
+  ui.gpsBusy={tok,id,h,at,me};ui.gpsMsg=null;ui.act=null;render();
+  setTimeout(()=>{if(live())fail("timeout")},GPS_GUARD);
+  const ok=pos=>{if(!live())return;ui.gpsBusy=null;const t=S.rounds.find(q=>q.id===id),c=t&&!t.closed&&hs(t).includes(h)&&t.players[t.me]!=null&&pkey(nm(t,t.me))===me?gpsMe(t,h):null;
+    if(!c){redraw();toast("No se guardó la marca: la vuelta cambió.");return}
+    const k=pos&&pos.coords||{},ts=pos&&pos.timestamp;
+    if(!numIn(k.latitude,-90,90)||!numIn(k.longitude,-180,180)||!numIn(k.accuracy,0,100000)||!numIn(ts,0,Infinity)){fail("unavail");return}
+    const g=c.gps||[];if(ts<at-GPS_OLD||g.some(q=>ts<=q.t)){fail("old");return}
+    const n=g.length?g[g.length-1].n+1:1;if(n>GPS_MAXN){redraw();return}
+    const m={n,la:+k.latitude.toFixed(7),lo:+k.longitude.toFixed(7),ac:Math.round(k.accuracy*10)/10,t:Math.round(ts)};c.gps=[...g,m];
+    ui.act={t:`golpe ${n} de ${nm(t,t.me)} en el hoyo ${h+1}`,k:null,go:{id,h}};save();redraw();vib(8);
+    toast(m.ac>GPS_AC?`Golpe ${n} marcado, con poca precisión (±${Math.round(m.ac)} m): no cuenta para las stats.`:`Golpe ${n} marcado (±${Math.round(m.ac)} m)`)};
+  const err=e=>{if(!live())return;const c=e&&e.code;fail(c===1?"denied":c===3?"timeout":"unavail")};
+  try{navigator.geolocation.getCurrentPosition(ok,err,{enableHighAccuracy:true,timeout:GPS_TO,maximumAge:0})}catch(e){err(null)}}
+// "Actualizar la mía": las marcas no viajan en el link, así que se copian de la vuelta del teléfono por nombre de jugador.
+// Devuelve cuántas celdas copió
+function keepGps(prev,next){let k=0;if(!prev||!next)return k;
+  prev.players.forEach((nq,q)=>{const p=next.players.findIndex(n=>pkey(n)===pkey(nq));if(p<0)return;
+    hs(next).forEach(h=>{const x=prev.d[h]&&prev.d[h][q];if(!x||!Array.isArray(x.gps)||!inPlay(next,h,p))return;next.d[h][p].gps=clone(x.gps);k++})});
+  return k}
 function vImg(){if(!ui.img)return"";
   return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT"><div class="sheet-bg" data-a="imgclose"></div><div class="sheet-p">
   <div class="grab"></div><div class="row" style="justify-content:space-between"><h2 id="imgT">Imagen de la vuelta</h2><button class="btn small" data-a="imgclose">Cerrar</button></div>
@@ -1576,7 +1715,7 @@ function vIncoming(){const r=ui.incoming;
   <div class="label">¿Quién sos?</div>
   <div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="inme" data-v="${i}" aria-pressed="${ui.inMe===i}">${esc(n)} · ${tot(i)}</button>`).join("")}<button class="chip" data-a="inme" data-v="-1" aria-pressed="${ui.inMe==null}">Ninguno</button></div>
   <p class="note">Tus stats y tu hándicap se arman con el jugador que elijas.</p>
-  ${mine?`<p class="note">Ya tenés esta vuelta. Si la actualizás, sus scores se reemplazan por los del link.</p><div class="row"><button class="btn primary" data-a="insave">Actualizar la mía</button><button class="btn" data-a="incopy">Guardar como otra</button></div>`:`<button class="btn primary" data-a="insave">Guardar en mis vueltas</button>`}
+  ${mine?`<p class="note">Ya tenés esta vuelta. Si la actualizás, sus scores se reemplazan por los del link.${keepGps(mine,{...r,d:clone(r.d)})?" Tus golpes marcados con GPS se conservan.":""}</p><div class="row"><button class="btn primary" data-a="insave">Actualizar la mía</button><button class="btn" data-a="incopy">Guardar como otra</button></div>`:`<button class="btn primary" data-a="insave">Guardar en mis vueltas</button>`}
   <button class="btn" data-a="indrop">Descartar</button></div>`}
 function fmtDate(d){const[y,m,dd]=d.split("-");return`${dd}/${m}/${y}`}
 function todayIso(){const t=new Date();return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`}
@@ -1750,7 +1889,7 @@ function checkHash(){const m=location.hash.match(/^#v=([\w-]+)$/);if(!m)return;
     const g=r.players.findIndex(n=>S.meName&&pkey(n)===pkey(S.meName));ui.inMe=mine&&mine.me!=null&&mine.me<r.players.length?mine.me:g<0?null:g;ui.incoming=r})
   .catch(()=>{ui.incoming=null;ui.inCourse=null}).then(()=>{S.view="incoming";render();window.scrollTo(0,0)})}
 function keepIncoming(copy){const r=ui.incoming;if(!r)return;r.me=ui.inMe;if(copy)r.id="r"+Date.now();keepCourse(ui.inCourse);ui.inCourse=null;
-  const i=S.rounds.findIndex(x=>x.id===r.id);if(i>=0){r.cur=S.rounds[i].cur||0;S.rounds[i]=r}else S.rounds.push(r);
+  const i=S.rounds.findIndex(x=>x.id===r.id);if(i>=0){r.cur=S.rounds[i].cur||0;keepGps(S.rounds[i],r);S.rounds[i]=r}else S.rounds.push(r);
   if(r.me!=null)S.meName=r.players[r.me];S.cur=r.id;S.statsP=r.me||0;S.view="games";ui.incoming=null;clearHash()}
 
 /* ---------- render y eventos ---------- */
@@ -1781,7 +1920,7 @@ function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==
     return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
   <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
   <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
-function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg()+vGreen();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg()+vGreen()+vShots();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   // Deshacer y rehacer: sin nada en la pila, o con un formulario abierto (el borrador se pisaría), quedan deshabilitados
   const lock=["setup","course","incoming"].includes(v);[["undo","u","Deshacer"],["redo","r","Rehacer"]].forEach(([id,k,w])=>{const bt=document.getElementById(id);if(!bt)return;
@@ -1791,10 +1930,11 @@ function render(){applyTheme();document.documentElement.classList.toggle("focusi
   app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
-  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen"].includes(a))return;
+  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen","gps","gpsopen","gpk","gpc","gpn","gpsdel"].includes(a))return;
   if(S.view==="course")readCDraft();const cd=ui.cdraft;
-  // Para deshacer: qué cambio es este y si sigue el grupo del toque anterior (solo los controles de una celda)
-  ui.act=actOf(a,v,r,h,p);if(!has(CELLK,a))ui.grp=null;
+  // Para deshacer: qué cambio es este y si sigue el grupo del toque anterior (los controles de una celda, el número y el palo de una marca)
+  const gi=+b.dataset.i,gx=r&&a.startsWith("gp")?gpsMe(r,h):null,gm=gx&&gx.gps&&gx.gps[gi];
+  ui.act=actOf(a,v,r,h,p,gi);if(!has(CELLK,a)&&!["gpn","gpc","gpk"].includes(a))ui.grp=null;
   switch(a){
    case"cnew":openCourse(null,"rounds");scrollTop=true;break;
    case"copen":openCourse(v,"rounds");scrollTop=true;break;
@@ -1812,8 +1952,8 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      // si el nombre era el del color, cambia con él
      if(!t.name.trim()||TPAL.some(x=>x[0]===t.name.trim()))t.name=nx[0];t.color=nx[1];break}
    case"cdef":cd.def=cd.tees[+v].k;break;
-   case"tab":S.view=v;ui.setupErr="";ui.gs=null;scrollTop=true;break;
-   case"go":ui.gs=null;if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
+   case"tab":S.view=v;ui.setupErr="";ui.gs=null;ui.shots=false;ui.gpsMsg=null;scrollTop=true;break;
+   case"go":ui.gs=null;ui.shots=false;ui.gpsMsg=null;if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
@@ -1823,8 +1963,16 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"g1":setG(x,"pd",x.pd===+v?null:GV.pd(+v));break;
    case"gc":setG(x,"ch",x.ch===+v?null:GV.ch(+v));break;
    case"gm":setG(x,"ms",x.ms===v?null:GV.ms(v));break;
-   case"gopen":if(!r||!r.players[p]||!inPlay(r,h,p))return;ui.gs=p;break;
+   case"gopen":if(!r||!r.players[p]||!inPlay(r,h,p))return;ui.gs=p;ui.shots=false;break;
    case"gclose":ui.gs=null;break;
+   case"gps":markShot();return;
+   case"gpsopen":if(!gx||!gx.gps)return;ui.shots=true;ui.gpc=gx.gps.length-1;ui.gs=null;break;
+   case"gpsclose":ui.shots=false;ui.gpc=null;break;
+   // Abrir el selector no es un cambio y no corta el grupo: elegir otro palo para la misma marca sigue siendo un solo cambio
+   case"gpk":if(!gm)return;ui.gpc=ui.gpc===gi?null:gi;render();return;
+   case"gpc":if(!gm)return;if(gm.c===v)delete gm.c;else if(clubOf(v))gm.c=v;else return;ui.gpc=null;break;
+   case"gpn":{if(!gm)return;const g=gx.gps,d=+v;if(d<0?gm.n<=1||gi>0&&gm.n-1<=g[gi-1].n:d>0?g[g.length-1].n>=GPS_MAXN:true)return;for(let j=gi;j<g.length;j++)g[j].n+=d;break}
+   case"gpsdel":if(!gm)return;gx.gps.splice(gi,1);if(!gx.gps.length){delete gx.gps;ui.shots=false;ui.gpc=null}else if(ui.gpc!=null&&ui.gpc>=gi)ui.gpc=ui.gpc===gi?null:ui.gpc-1;break;
    case"undo":undo();return;
    case"redo":redo();return;
    case"wolf":{const val=v==="lone"||v==="blind"?v:+v;r.wolf[h]=r.wolf[h]===val?null:val;break}
@@ -1916,7 +2064,7 @@ function onChange(e){
     if(t.own&&!t.par.length){t.par=d.par.slice();t.si=d.si.slice()}render();return}
   if(e.target.id==="imp-file"){const f=e.target.files&&e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{doImport(String(fr.result));save();render()};fr.readAsText(f)}}
 function init(){S=load();histBase();loadHist();if(!S.view)S.view="games";document.addEventListener("click",onClick);document.addEventListener("submit",onSubmit);document.addEventListener("change",onChange);render();keepAwake();
-  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img||ui.gs!=null)){ui.themes=false;closeImg();ui.gs=null;render()}
+  document.addEventListener("visibilitychange",keepAwake);document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(ui.themes||ui.img||ui.gs!=null||ui.shots)){ui.themes=false;closeImg();ui.gs=null;ui.shots=false;render()}
     if((e.key==="ArrowUp"||e.key==="ArrowDown")&&e.target.classList&&e.target.classList.contains("grip")){e.preventDefault();const i=+e.target.dataset.v,t=i+(e.key==="ArrowUp"?-1:1);movePlayer(i,t);const g=document.querySelector(`.grip[data-v="${t}"]`);if(g)g.focus()}cKey(e)});
   document.addEventListener("input",cInput);
   // El historial de deshacer se guarda al pasar a segundo plano: en la cancha la app se cierra sin aviso
@@ -1951,12 +2099,12 @@ async function keepAwake(){const r=R(),on=!!r&&!r.closed&&document.visibilitySta
 // En la pantalla del hoyo, deslizar cambia de hoyo
 let touch0=null;
 function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;return}const t=e.touches[0];touch0={x:t.clientX,y:t.clientY}}
-function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
+function onTouchEnd(e){if(!touch0||S.view!=="hole")return;if(ui.shots){touch0=null;return}const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
-  ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;vib(8);save();render();window.scrollTo(0,0)}
+  ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="f29d9e9edc";
+const VERSION="ef1435a8ee";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
