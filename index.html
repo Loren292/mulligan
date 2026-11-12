@@ -847,7 +847,7 @@ function cleanGps(x){if(!x||typeof x!=="object"||!has(x,"gps"))return x;if(!Arra
 // Mapa de los hoyos: S.maps = {<id de cancha>: {<"h0"…"h17">: {g: {f, c, b}, o: [{k: "b"|"w", l?, e?, s?} | {k: "o", l?, p?}]}}},
 // puntos {la, lo, ac? (solo si vino del GPS)}. Va fuera de la cancha: cleanCourse borra las claves que no conoce y la cancha
 // viaja en el link. Sin mapas = la clave no está. Imagen: Esri World Imagery (con clave en HM_KEY, si hay)
-const HM_KEY="";
+const HM_KEY="AAPTanTIeeCsz4MjT6qUqR2QOVQ..Y_hVQqOeZMyt__XabaKGvblq2MNgD_haKMc0Y59RAAP8x8ShH8_GSnKfg2_gEHqm6NB1DvhEcbDLdC7M62Y-plIt5_Fa0sv8bpWG377MaP_uRToTL1eqpu5mIKAZ1hVnKnIzY9e_crPyiVFZM4xEmE8Q2YnFLnxFGEpuFPBiC-BmHKmBfcyJiV1-QBg7kSHPJEKb4W0CweK7zf4mgBndfEihe0h9CXAA6EMrBxGs2e0C0UTZUA..AT1_J9agR3mg";   // clave pública de ArcGIS Location Platform (solo mapas base, vence 2027-11-12)
 const HM_TILE=HM_KEY?"https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token="+HM_KEY
   :"https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const HM_TMAX=17,HM_ZMIN=15,HM_ZMAX=19,HM_ZPUT=18,HM_MAXO=12,HM_MAXP=12,HM_TAP=8;
@@ -2386,7 +2386,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;if(ui.shots){touch0=nu
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="e7be25caa4";
+const VERSION="4f419d88ac";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
