@@ -204,6 +204,8 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .prow{display:flex;gap:6px;align-items:center}
 .prow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px}
 .check.off{opacity:.55}
+.card tr.tap{cursor:pointer}
+.hbtn{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;min-width:24px}
 .closedbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:12px;padding:10px 12px;font-size:15px}
 fieldset.ro{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:12px}
 fieldset.ro:disabled .pcard{opacity:.8}
@@ -1237,7 +1239,7 @@ function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0;let tot=0,tp=0,n=0;
   const seg=L.map((hh,i)=>{const v=sc(r,hh,me),d=v==null?null:v-PP(r,me)[hh],cl=d==null?"":d<0?"u":d===0?"p":d===1?"o":"oo";
     return`<button data-a="go" data-v="${i}" class="sg ${cl}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}" aria-label="Hoyo ${hh+1}${v==null?"":": "+v}"><i></i></button>`}).join("");
   const lv=r.closed?null:liveRows(r)[0];
-  return`<div class="stack"><section class="fhero" aria-label="Hoyo ${h+1}">
+  return`<div class="stack">${vAway(r)}<section class="fhero" aria-label="Hoyo ${h+1}">
    <div class="fh-top"><div class="fh-no"><small>Hoyo</small><b>${h+1}</b></div>
     <div class="fh-facts"><div><small>Par</small><b>${parLab(r,h)}</b></div><div><small>Yardas</small><b>${dist(c,teeK(r,me),h)||"–"}</b></div><div><small>Índice</small><b>${siLab(r,h)}</b></div></div>
     <button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button></div>
@@ -1247,7 +1249,7 @@ function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0;let tot=0,tp=0,n=0;
 // Quien no carga drive, penalidades ni bunker en esta vuelta los ve recién si los empieza a usar (vos, siempre)
 const fullCard=(r,p)=>p===r.me||needs(r).fw||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
-  let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">
+  let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">${vAway(r)}
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
    <div class="hh-r"><button type="button" class="focus-t" data-a="focus" aria-pressed="${!!S.focus}" title="${S.focus?"Volver a la pantalla completa del hoyo":"Modo cancha: lo justo para jugar"}"><span class="sw" aria-hidden="true"></span>Focus</button><div class="hole-facts"><div class="fact"><span class="label">Par</span><span class="num">${parLab(r,h)}</span></div>
    ${mixed?"":`<div class="fact"><span class="label">Yardas</span><span class="num">${dist(c,teeSet(r)[0],h)}</span></div>`}
@@ -1293,11 +1295,12 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
   return html}
 function scCell(s,par){if(s==null)return'<span class="muted">·</span>';const d=s-par;const c=d<=-2?"e":d===-1?"b":d===0?"":d===1?"bo":"d";return`<span class="sc ${c}">${s}</span>`}
 function vCard(r){const L=hs(r);const rowSub=(lab,l)=>`<tr class="sub"><td>${lab}</td><td>${l.reduce((a,h)=>a+P(r)[h],0)}</td>${r.players.map((_,p)=>{const v=l.map(h=>sc(r,h,p)).filter(x=>x!=null);return`<td>${v.length?v.reduce((a,b)=>a+b,0):"–"}</td>`}).join("")}</tr>`;
-  let body="";L.forEach((h,i)=>{body+=`<tr><td class="h">${h+1}</td><td class="par">${parLab(r,h)}</td>${r.players.map((_,p)=>`<td>${scCell(sc(r,h,p),PP(r,p)[h])}</td>`).join("")}</tr>`;
+  let body="";L.forEach((h,i)=>{body+=`<tr class="tap" data-a="goh" data-v="${h}"><td class="h"><button type="button" class="hbtn" data-a="goh" data-v="${h}" aria-label="Ir al hoyo ${h+1}">${h+1}</button></td><td class="par">${parLab(r,h)}</td>${r.players.map((_,p)=>`<td>${scCell(sc(r,h,p),PP(r,p)[h])}</td>`).join("")}</tr>`;
     if(r.n===18&&i===8)body+=rowSub("Ida",L.slice(0,9))});
   if(r.n===18)body+=rowSub("Vuelta",L.slice(9));body+=rowSub("Total",L);
-  return`<div class="stack"><div class="tablewrap"><table class="card"><thead><tr><th>Hoyo</th><th>Par</th>${r.players.map((n,p)=>`<th>${esc(n)}${teeSet(r).length>1?`<br>${teeDot(CRS(r),teeK(r,p))}`:""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
+  return`<div class="stack">${vAway(r)}<div class="tablewrap"><table class="card"><thead><tr><th>Hoyo</th><th>Par</th>${r.players.map((n,p)=>`<th>${esc(n)}${teeSet(r).length>1?`<br>${teeDot(CRS(r),teeK(r,p))}`:""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
   <div class="legend"><span class="sc e">3</span>Águila <span class="sc b">3</span>Birdie <span class="sc bo">5</span>Bogey <span class="sc d">6</span>Doble o más</div>
+  <p class="note">${r.closed?"Tocá un hoyo para verlo; para corregirlo, reabrí la vuelta.":"Tocá un hoyo para corregirlo."}</p>
   ${outTxt(r)?`<p class="note">${esc(outTxt(r))}</p>`:""}${r.note?`<p class="note">${esc(r.note)}</p>`:""}${CANSHARE&&hs(r).some(h=>r.d[h].some(x=>x.s!=null))?`<button class="btn" data-a="img" data-v="${r.id}">Compartir como imagen</button>`:""}</div>`}
 // Arriba de Stats y Juegos: ver la vuelta abierta o el historial de todas
 const modeSeg=(a,m)=>`<div class="seg modeseg" role="group" aria-label="Qué mostrar"><button data-a="${a}" data-v="round" aria-pressed="${m==="round"}">Esta vuelta</button><button data-a="${a}" data-v="hist" aria-pressed="${m==="hist"}">Historial</button></div>`;
@@ -1353,9 +1356,16 @@ function histPick(ps){const mk=meKey(),sel=ps.some(e=>e.k===S.histP)?S.histP:ps[
 function addStats(a,b){["s","par","n","fw","fwN","fwL","fwR","gir","girN","putts","pN","three","one","pen","bk","ss"].forEach(k=>a[k]+=b[k]);
   Object.keys(a.dist).forEach(k=>a.dist[k]+=b.dist[k]);[3,4,5].forEach(t=>{a.pt[t][0]+=b.pt[t][0];a.pt[t][1]+=b.pt[t][1]});return a}
 const zeroStats=()=>({s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}});
-function histSel(){const list=[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1));if(!list.length)return{html:"",r:null};
+// Las vueltas de la más nueva a la más vieja; el mismo día, la creada después primero
+const byDate=()=>[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1));
+// La vuelta "de hoy": la más nueva en juego o, si están todas cerradas, la más nueva
+const homeR=()=>{const l=byDate();return l.find(x=>!x.closed)||l[0]||null};
+// Arriba de Hoyo y Tarjeta cuando estás en otra vuelta: así no se carga un golpe en la vuelta equivocada
+function vAway(r){const h=homeR();if(!r||!h||h.id===r.id)return"";
+  return`<div class="closedbar away" role="status"><span><b>Estás viendo la vuelta del ${fmtDate(r.date)}.</b>${r.closed?"":" Lo que cargues va a esa vuelta."}</span><button class="btn small" data-a="home">Volver a la ${h.date===todayIso()?"de hoy":"del "+fmtDate(h.date)}</button></div>`}
+function histSel(){const list=byDate();if(!list.length)return{html:"",r:null};
   const r=list.find(x=>x.id===S.histRound)||null;
-  return{r,html:`<div class="field"><label class="label" for="histsel">Vueltas</label><select id="histsel"><option value="">Todas las vueltas juntas (${list.length})</option>${list.map(x=>`<option value="${esc(x.id)}"${r&&r.id===x.id?" selected":""}>${fmtDate(x.date)} · ${crsLab(x)}${x.n===18?"18 hoyos":x.start===0?"Ida":"Vuelta"} · ${esc(x.players.join(", "))}</option>`).join("")}</select></div>`}}
+  return{r,html:`<div class="field"><label class="label" for="histsel">Vueltas</label><select id="histsel"><option value="">Todas las vueltas juntas (${list.length})</option>${list.map(x=>`<option value="${esc(x.id)}"${r&&r.id===x.id?" selected":""}>${fmtDate(x.date)} · ${crsLab(x)}${x.n===18?"18 hoyos":x.start===0?"Ida":"Vuelta"} · ${esc(x.players.join(", "))}</option>`).join("")}</select></div>${r?`<button class="btn" data-a="card" data-v="${esc(r.id)}">Ver tarjeta</button>`:""}`}}
 function vStatsHist(){const hs_=histSel();if(hs_.r)return`<div class="stack">${hs_.html}${vStatsRound(hs_.r,true)}</div>`;return hs_.html+vStatsAll()}
 function vStatsAll(){const ps=people();
   if(!ps.length)return`<p class="muted">Todavía no hay vueltas. Cuando cargues alguna, acá vas a ver los números de cada jugador con todas sus vueltas juntas.</p>`;
@@ -1838,7 +1848,10 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"ptee":{readDraft();const ks=Object.keys(draftC(ui.draft).tees),q=ui.draft.players[+v];q.tee=ks[(ks.indexOf(q.tee||ui.draft.tee)+1)%ks.length];break}
    case"pme":{readDraft();const was=ui.draft.players[+v].me;ui.draft.players.forEach(q=>q.me=false);ui.draft.players[+v].me=!was;break}
    case"team":readDraft();ui.draft.players[+v].team=b.dataset.t;break;
-   case"open":{S.cur=v;const t=R();S.statsP=t&&t.me!=null?t.me:0;S.view="games";scrollTop=true;break}
+   case"open":{S.cur=v;const t=R();S.statsP=t&&t.me!=null?t.me:0;S.view=t&&!t.closed?"hole":"card";scrollTop=true;break}
+   case"card":{if(!S.rounds.some(x=>x.id===v))return;S.cur=v;const t=R();S.statsP=t.me!=null?t.me:0;S.view="card";scrollTop=true;break}
+   case"home":{const t=homeR();if(!t)return;S.cur=t.id;S.statsP=t.me!=null?t.me:0;scrollTop=true;break}
+   case"goh":{if(!r)return;const i=hs(r).indexOf(+v);if(i<0)return;ui.gs=null;ui.warned=null;ui.dir=0;r.cur=i;S.view="hole";scrollTop=true;break}
    case"del":ui.pendingDel=v;break;
    case"delno":ui.pendingDel=null;break;
    case"delok":S.rounds=S.rounds.filter(x=>x.id!==v);ui.pendingDel=null;
@@ -1943,7 +1956,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;const t=e.changedTouch
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="9c004d10af";
+const VERSION="f29d9e9edc";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
