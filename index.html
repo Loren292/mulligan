@@ -670,6 +670,43 @@ span.gpssum{font-size:14px;line-height:40px;color:var(--muted);padding:0 4px}
 .gpclubs .chip{height:40px;padding:0 4px;min-width:0}
 .royal .gpsrow{border-top-color:var(--leaf)}
 .gpsst .g-lines{margin-top:6px}
+/* Mapa de los hoyos: panel de distancias en el hoyo y editor */
+.hmbar{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.hmhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.hmfrom{margin:0;font-size:14px;color:var(--muted);min-width:0}
+.hmbtns{display:flex;gap:6px;flex:none}
+.hmrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-top:6px;border-top:1px solid var(--line);font-size:14px}
+.hmrow span{color:var(--muted);min-width:0}
+.hmrow b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.hmg b{font-size:16px}
+.hmorgs{gap:6px}
+.hmmsg{margin:0;font-size:13px;color:var(--red)}
+.hmtop{justify-content:space-between;flex-wrap:nowrap}
+.hmtop h2{font-size:20px;min-width:0}
+.hmtop .row{flex-wrap:nowrap;flex:none}
+.hmmap{position:relative;width:100%;height:min(50vh,420px);overflow:hidden;touch-action:none;border-radius:12px;background:var(--sunk);user-select:none;-webkit-user-select:none;cursor:crosshair}
+.hmlayer{position:absolute;left:50%;top:50%;width:0;height:0}
+.hmtile{position:absolute;max-width:none;pointer-events:none;user-select:none}
+.hmpt{position:absolute;transform:translate(-50%,-50%);pointer-events:none;min-width:24px;height:22px;padding:0 5px;border-radius:999px;background:rgba(255,255,255,.92);color:#0b130e;border:2px solid #0b130e;font:700 11px/18px system-ui,sans-serif;text-align:center;white-space:nowrap}
+.hmpt.on{background:#d4ff3a}
+.hmzoom{position:absolute;right:8px;top:8px;z-index:1;display:flex;flex-direction:column;gap:6px}
+.hmzoom button{width:42px;height:42px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:22px;font-weight:700;line-height:1}
+.hmzoom button:disabled{opacity:.45;cursor:default}
+.hmfoot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hmattr{font-size:11px;color:var(--muted);min-width:0}
+.hmoff{margin:0;font-size:13px;color:var(--red)}
+.hmnone{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.hmnone p{margin:0}
+.hmnone input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;min-height:44px}
+.hmnone .row{flex-wrap:nowrap}
+.hmslot{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--line)}
+.hmsel{flex:1 1 auto;min-width:0;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;font-weight:600;font-size:14px}
+.hmsel[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hmst{flex:none;font-size:13px;color:var(--muted);white-space:nowrap}
+.hmslot .btn{flex:none}
+.hmobs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:2px solid var(--line)}
+.hmobs b{flex:1 1 auto}
+.hmobs~.hmslot{padding-left:12px}
 /* orden de los jugadores */
 .grip{flex:none;display:grid;place-items:center;width:18px;height:44px;margin:0 -2px 0 -4px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
 .grip:active{cursor:grabbing}
@@ -807,6 +844,33 @@ function cleanGps(x){if(!x||typeof x!=="object"||!has(x,"gps"))return x;if(!Arra
     if(intIn(m.n,1,GPS_MAXN)==null||!numIn(m.la,-90,90)||!numIn(m.lo,-180,180)||!numIn(m.ac,0,100000)||!Number.isInteger(m.t)||m.t<0||seen.has(m.n))return;
     seen.add(m.n);if(has(m,"c")&&!clubOf(m.c))delete m.c;out.push(m)});
   out.sort((a,b)=>a.n-b.n);if(out.length)x.gps=out;else delete x.gps;return x}
+// Mapa de los hoyos: S.maps = {<id de cancha>: {<"h0"…"h17">: {g: {f, c, b}, o: [{k: "b"|"w", l?, e?, s?} | {k: "o", l?, p?}]}}},
+// puntos {la, lo, ac? (solo si vino del GPS)}. Va fuera de la cancha: cleanCourse borra las claves que no conoce y la cancha
+// viaja en el link. Sin mapas = la clave no está. Imagen: Esri World Imagery (con clave en HM_KEY, si hay)
+const HM_KEY="";
+const HM_TILE=HM_KEY?"https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token="+HM_KEY
+  :"https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const HM_TMAX=17,HM_ZMIN=15,HM_ZMAX=19,HM_ZPUT=18,HM_MAXO=12,HM_MAXP=12,HM_TAP=8;
+const HM_CENTER={"mdp-nueva":{la:-38.0629467,lo:-57.5822529}};
+const HM_KINDS={b:"Bunker",w:"Agua",o:"Fuera de límites"},HM_SIDES={i:"izq.",c:"centro",d:"der."};
+const plainObj=x=>!!x&&typeof x==="object"&&!Array.isArray(x);
+function hmPtOk(p){return plainObj(p)&&numIn(p.la,-90,90)&&numIn(p.lo,-180,180)}
+// Lo de afuera solo se valida (no se rearma ni se redondea): lo inválido se borra y lo que queda vacío también
+function cleanMaps(j){if(!has(j,"maps"))return j;const M=j.maps;if(!plainObj(M)){delete j.maps;return j}
+  const ids=new Set((j.courses||[]).map(c=>c.id)),ac=p=>{if(has(p,"ac")&&!numIn(p.ac,0,100000))delete p.ac};
+  const pt=(o,k)=>{if(!has(o,k))return;if(!hmPtOk(o[k]))delete o[k];else ac(o[k])};
+  const key=(x,K)=>typeof x==="string"&&has(K,x);
+  Object.keys(M).forEach(cid=>{const C=M[cid];if(!/^[\w-]{1,40}$/.test(cid)||!ids.has(cid)||!plainObj(C)){delete M[cid];return}
+    Object.keys(C).forEach(h=>{const m=C[h];if(!/^h(?:\d|1[0-7])$/.test(h)||!plainObj(m)){delete C[h];return}
+      if(has(m,"g")){if(!plainObj(m.g))delete m.g;else{["f","c","b"].forEach(k=>pt(m.g,k));if(!["f","c","b"].some(k=>has(m.g,k)))delete m.g}}
+      if(has(m,"o")){if(!Array.isArray(m.o))delete m.o;else{m.o=m.o.filter(x=>plainObj(x)&&key(x.k,HM_KINDS)).slice(0,HM_MAXO);
+        m.o.forEach(x=>{if(has(x,"l")&&!key(x.l,HM_SIDES))delete x.l;
+          if(x.k!=="o"){pt(x,"e");pt(x,"s")}
+          else if(has(x,"p")){if(!Array.isArray(x.p))delete x.p;else{x.p=x.p.filter(hmPtOk).slice(0,HM_MAXP);x.p.forEach(ac);if(!x.p.length)delete x.p}}});
+        if(!m.o.length)delete m.o}}
+      if(!has(m,"g")&&!has(m,"o"))delete C[h]});
+    if(!Object.keys(C).length)delete M[cid]});
+  if(!Object.keys(M).length)delete j.maps;return j}
 const distOk=v=>typeof v==="number"?intIn(v,1,999):typeof v==="string"&&/^\d{1,3}(\/\d{1,3})?$/.test(v)?v:null;
 const arr18=(a,f)=>Array.from({length:18},(_,h)=>f(Array.isArray(a)?a[h]:null));
 function cleanCourse(o){if(!o||typeof o!=="object"||typeof o.id!=="string"||!/^[\w-]{1,40}$/.test(o.id))return null;
@@ -992,9 +1056,11 @@ function greenTxt(x,par){const g=greenOf(x,par);
   return[g.pd!=null?g.pd+(g.pd===1?" paso":" pasos"):"",g.ch!=null?g.ch+" cerca":"",g.ms!=null?MSTXT[g.ms]:""].filter(Boolean).join(" · ")}
 const hasGreen=(r,p)=>hs(r).some(h=>{const x=r.d[h][p];return!!x&&(has(x,"pd")||has(x,"ch")||has(x,"ms"))});
 // Yardas enteras en línea recta entre dos marcas (haversine), con el mismo factor metro→yarda que yd()
-function gpsYd(a,b){const rad=Math.PI/180,df=(b.la-a.la)*rad,dl=(b.lo-a.lo)*rad;
+// (gpsM: los metros sin redondear, para comparar distancias)
+function gpsM(a,b){const rad=Math.PI/180,df=(b.la-a.la)*rad,dl=(b.lo-a.lo)*rad;
   const s=Math.sin(df/2)**2+Math.cos(a.la*rad)*Math.cos(b.la*rad)*Math.sin(dl/2)**2;
-  return Math.round(2*6371008.8*Math.asin(Math.min(1,Math.sqrt(s)))*1.09361)}
+  return 2*6371008.8*Math.asin(Math.min(1,Math.sqrt(s)))}
+function gpsYd(a,b){return Math.round(gpsM(a,b)*1.09361)}
 // Largo del hoyo h desde la salida de p, en yardas; con dos distancias ("465/500") la segunda, como totYd
 const holeYd=(r,p,h)=>{const c=CRS(r),t=c.tees[teeK(r,p)],n=t?parseInt(String(t.m[h]??"").split("/").pop()):NaN;return n>0?(c.unit==="yd"?n:Math.round(n*1.09361)):null};
 // Golpes medidos: de una marca a la del número siguiente. Cuál cuenta para las stats lo dice why (null = cuenta).
@@ -1011,6 +1077,29 @@ function gpsTxt(x){const g=x&&Array.isArray(x.gps)?[...x.gps].sort((a,b)=>a.n-b.
 const hasGps=(r,p)=>hs(r).some(h=>{const x=r.d[h][p];return!!x&&has(x,"gps")});
 // La celda de "Yo" en el hoyo h si ahí se pueden marcar golpes: hay "Yo", sigue en juego y no es footgolf
 const gpsMe=(r,h)=>r&&h!=null&&r.me!=null&&r.players[r.me]!=null&&inPlay(r,h,r.me)&&!isFoot(CRS(r))?r.d[h][r.me]:null;
+/* ---------- mapa de los hoyos: distancias ---------- */
+// Las claves de hoyo son "h0"…"h17": claves que parecen números sacan al JSON.stringify de todo S del camino rápido
+const holeMap=(cid,h)=>S&&plainObj(S.maps)&&has(S.maps,cid)&&has(S.maps[cid],"h"+h)?S.maps[cid]["h"+h]:null;
+// Un hoyo "tiene mapa" si tiene algún punto (un obstáculo recién agregado puede no tener ninguno)
+// Cada clave cuenta solo en su tipo: f, c, b en g; e, s en un bunker o agua; p en un fuera de límites
+const hmHas=m=>!!m&&(plainObj(m.g)&&["f","c","b"].some(k=>has(m.g,k)&&hmPtOk(m.g[k]))||Array.isArray(m.o)&&m.o.some(x=>plainObj(x)&&(x.k==="o"?Array.isArray(x.p)&&x.p.some(hmPtOk):(x.k==="b"||x.k==="w")&&(has(x,"e")&&hmPtOk(x.e)||has(x,"s")&&hmPtOk(x.s)))));
+const hmCourseHas=cid=>!!S&&plainObj(S.maps)&&has(S.maps,cid)&&Object.values(S.maps[cid]).some(hmHas);
+// Yardas al punto más cercano de una poligonal, en un plano local centrado en o (a estas distancias difiere de la esfera en cm)
+function lineYd(o,pts){const R0=6371008.8,rad=Math.PI/180,k=Math.cos(o.la*rad),xy=p=>[(p.lo-o.lo)*rad*k*R0,(p.la-o.la)*rad*R0];
+  let best=Infinity;const P=pts.map(xy);
+  P.forEach((a,i)=>{const b=P[i+1]||a,dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2?Math.max(0,Math.min(1,-(a[0]*dx+a[1]*dy)/l2)):0;
+    best=Math.min(best,Math.hypot(a[0]+t*dx,a[1]+t*dy))});
+  return Math.round(best*1.09361)}
+// Distancias desde o: green [frente, centro, fondo] y cada obstáculo que no quedó atrás, de la más cercana a la más lejana.
+// Un bunker o agua queda atrás si o está más cerca del centro del green que todos sus puntos; el fuera de límites, nunca
+function hmDists(m,o){const g=m&&m.g?["f","c","b"].map(k=>hmPtOk(m.g[k])?gpsYd(o,m.g[k]):null):null,c=m&&m.g&&hmPtOk(m.g.c)?m.g.c:null,out=[];
+  (m&&Array.isArray(m.o)?m.o:[]).forEach((x,i)=>{const l=x.l??null;
+    if(x.k==="o"){const p=Array.isArray(x.p)?x.p.filter(hmPtOk):[];if(p.length)out.push({i,k:x.k,l,a:lineYd(o,p),b:null});return}
+    const e=hmPtOk(x.e)?x.e:null,s=hmPtOk(x.s)?x.s:null;if(!e&&!s)return;
+    if(c){const dc=gpsM(o,c);if([e,s].filter(Boolean).every(q=>dc<gpsM(q,c)))return}
+    out.push({i,k:x.k,l,a:e?gpsYd(o,e):null,b:s?gpsYd(o,s):null})});
+  const v=x=>x.a??x.b;out.sort((x,y)=>v(x)-v(y)||x.i-y.i);
+  return{g,o:out}}
 const PH={
  // quien abandonó suma −3 en cada hoyo que no jugó, para que abandonar nunca convenga (P2)
  stab2:{f:(r,h)=>{if(!r.d[h].some(x=>x.s!=null))return null;return r.players.map((_,p)=>{const s=sc(r,h,p);if(s==null)return inPlay(r,h,p)?null:-3;const d=s-PP(r,p)[h];return d<=-3?8:d===-2?5:d===-1?2:d===0?0:d===1?-1:-3})}},
@@ -1185,37 +1274,39 @@ function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEa
   // Las de fábrica nuevas se suman una sola vez (si después se borran, no vuelven), salvo que ya esté cargada a mano
   const sd=Array.isArray(j.seeded)?j.seeded:[];
   FACTORY.forEach(f=>{if(f!==BUILTIN&&!sd.includes(f.id)&&!j.courses.some(c=>c.id===f.id||c.name.toLowerCase().includes(f.name.toLowerCase())))j.courses.push(clone(f))});
-  j.seeded=FACTORY.map(f=>f.id);return j}
+  j.seeded=FACTORY.map(f=>f.id);return cleanMaps(j)}
 function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&Array.isArray(j.rounds))return norm(j)}catch(e){}
   return{rounds:[],courses:FACTORY.map(clone),seeded:FACTORY.map(f=>f.id),cur:null,view:"rounds",statsP:0}}
 function save(){track();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const R=()=>S.rounds.find(r=>r.id===S.cur)||S.rounds[0];
-let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:"",gs:null,grp:null,act:null,shots:false,gpc:null,gpsBusy:null,gpsMsg:null};
+let ui={pendingDel:null,exp:false,imp:false,impErr:"",setupErr:"",gs:null,grp:null,act:null,shots:false,gpc:null,gpsBusy:null,gpsMsg:null,hm:null,hmBusy:null,hmMsg:null,hmMed:null,hmPos:null,hmOrg:{},hmBarMsg:null};
 
 /* ---------- deshacer y rehacer ---------- */
-// Todo cambio de datos pasa por save(): track() compara cada vuelta (sin r.cur), las canchas y S.meName con la foto anterior
+// Todo cambio de datos pasa por save(): track() compara cada vuelta (sin r.cur), las canchas, S.meName y S.maps con la foto anterior
 // y guarda el antes y el después de lo que cambió. Quien cambia datos pone ui.act={t,k,go} antes de save(); si no, queda
 // como "último cambio". Los toques seguidos con la misma clave k (mismo control, jugador y hoyo) son un solo cambio.
 // El historial vive en su propia clave, fuera de S: no viaja en el backup
 const HKEY="mdp-golf-undo-v1",HMAX=50;
 let HIST={u:[],r:[]},HB=null;
 const snapR=r=>JSON.stringify({...r,cur:0});
-function histBase(){const m=new Map();S.rounds.forEach((r,i)=>m.set(r.id,{j:snapR(r),c:r.cur,i}));HB={m,cs:JSON.stringify(S.courses),me:S.meName??null}}
+// El mapa de los hoyos (S.maps) va en la entrada como mp: {b, a}, en texto; "null" si no había
+const mapsJ=()=>S.maps?JSON.stringify(S.maps):"null";
+function histBase(){const m=new Map();S.rounds.forEach((r,i)=>m.set(r.id,{j:snapR(r),c:r.cur,i}));HB={m,cs:JSON.stringify(S.courses),me:S.meName??null,mp:mapsJ()}}
 function track(){if(!HB){histBase();return}const act=ui.act,m=new Map(),ch=[];ui.act=null;
   S.rounds.forEach((r,i)=>{const j=snapR(r),o=HB.m.get(r.id);m.set(r.id,{j,c:r.cur,i});if(!o||o.j!==j)ch.push({id:r.id,b:o?o.j:null,a:j,bi:o?o.i:-1,ai:i,bc:o?o.c:null,ac:r.cur})});
   HB.m.forEach((o,id)=>{if(!m.has(id))ch.push({id,b:o.j,a:null,bi:o.i,ai:-1,bc:o.c,ac:null})});
-  const cs=JSON.stringify(S.courses),me=S.meName??null;
-  const e={t:act?act.t:"último cambio",k:act?act.k:null,go:act?act.go:null,ch,cs:cs!==HB.cs?{b:HB.cs,a:cs}:null,me:me!==HB.me?{b:HB.me,a:me}:null};
-  HB={m,cs,me};
+  const cs=JSON.stringify(S.courses),me=S.meName??null,mp=mapsJ();
+  const e={t:act?act.t:"último cambio",k:act?act.k:null,go:act?act.go:null,ch,cs:cs!==HB.cs?{b:HB.cs,a:cs}:null,me:me!==HB.me?{b:HB.me,a:me}:null,mp:mp!==HB.mp?{b:HB.mp,a:mp}:null};
+  HB={m,cs,me,mp};
   // Un toque que no cambia nada cierra el grupo, aunque sea sobre el mismo control
-  if(!ch.length&&!e.cs&&!e.me){ui.grp=null;return}
+  if(!ch.length&&!e.cs&&!e.me&&!e.mp){ui.grp=null;return}
   // Mismo grupo: se conserva el antes del primer toque y se reemplaza el después; si quedó como estaba, no deja nada y el grupo se cierra
   const L=HIST.u[HIST.u.length-1];
   if(e.k!=null&&e.k===ui.grp&&!HIST.r.length&&L&&L.k===e.k){
     ch.forEach(c=>{const o=L.ch.find(x=>x.id===c.id);if(o){o.a=c.a;o.ai=c.ai;o.ac=c.ac}else L.ch.push(c)});
-    if(e.cs)L.cs=L.cs?{b:L.cs.b,a:e.cs.a}:e.cs;if(e.me)L.me=L.me?{b:L.me.b,a:e.me.a}:e.me;
-    L.ch=L.ch.filter(c=>c.b!==c.a);if(L.cs&&L.cs.b===L.cs.a)L.cs=null;if(L.me&&L.me.b===L.me.a)L.me=null;
-    if(!L.ch.length&&!L.cs&&!L.me){HIST.u.pop();ui.grp=null;return}}
+    if(e.cs)L.cs=L.cs?{b:L.cs.b,a:e.cs.a}:e.cs;if(e.me)L.me=L.me?{b:L.me.b,a:e.me.a}:e.me;if(e.mp)L.mp=L.mp?{b:L.mp.b,a:e.mp.a}:e.mp;
+    L.ch=L.ch.filter(c=>c.b!==c.a);if(L.cs&&L.cs.b===L.cs.a)L.cs=null;if(L.me&&L.me.b===L.me.a)L.me=null;if(L.mp&&L.mp.b===L.mp.a)L.mp=null;
+    if(!L.ch.length&&!L.cs&&!L.me&&!L.mp){HIST.u.pop();ui.grp=null;return}}
   else{HIST.u.push(e);HIST.r=[];if(HIST.u.length>HMAX)HIST.u.shift()}
   ui.grp=e.k}
 // side "b" vuelve al antes (deshacer), "a" al después (rehacer). Las vueltas vuelven a su lugar con el hoyo que se estaba viendo
@@ -1224,7 +1315,9 @@ function applyEntry(e,side){const was={};
   e.ch.filter(c=>c[side]!=null).sort((x,y)=>x[side+"i"]-y[side+"i"]).forEach(c=>{const r=JSON.parse(c[side]),k=has(was,c.id)?was[c.id]:c[side+"c"];
     r.cur=Number.isInteger(k)?Math.max(0,Math.min(k,(r.n||18)-1)):0;S.rounds.splice(Math.max(0,Math.min(c[side+"i"],S.rounds.length)),0,r)});
   if(e.cs)S.courses=JSON.parse(e.cs[side]);
-  if(e.me){if(e.me[side]==null)delete S.meName;else S.meName=e.me[side]}}
+  if(e.me){if(e.me[side]==null)delete S.meName;else S.meName=e.me[side]}
+  // Deshacer o rehacer un cambio de mapa puede correr los puntos: el casillero elegido se suelta siempre
+  if(e.mp){const v=JSON.parse(e.mp[side]);if(v)S.maps=v;else delete S.maps;if(ui.hm)ui.hm.sel=null}}
 function histStep(from,to,side,word){const e=HIST[from].pop();if(!e)return false;const v0=S.view,c0=S.cur;
   applyEntry(e,side);HIST[to].push(e);
   const g=e.go&&S.rounds.find(r=>r.id===e.go.id);
@@ -1241,21 +1334,23 @@ function saveHist(){for(let k=0;k<4;k++){try{localStorage.setItem(HKEY,JSON.stri
 // Al abrir: si está roto o los datos cambiaron por fuera (otra versión de la app, un import), el historial se descarta entero
 function loadHist(){HIST={u:[],r:[]};let o;try{o=JSON.parse(localStorage.getItem(HKEY))}catch(e){return}
   const str=s=>s===null||typeof s==="string",obj=x=>!!x&&typeof x==="object";
-  const pj=(s,f)=>{try{return f(JSON.parse(s))}catch(e){return false}};
+  const pj=(s,f)=>{try{return f(JSON.parse(s))}catch(e){return false}},mo=x=>x===null||obj(x)&&!Array.isArray(x);
   const rd=(s,id)=>s===null||pj(s,r=>obj(r)&&r.id===id&&Array.isArray(r.players)&&Array.isArray(r.d));
   const ok=e=>obj(e)&&typeof e.t==="string"&&(e.k==null||typeof e.k==="string")&&(e.go==null||obj(e.go)&&typeof e.go.id==="string"&&Number.isInteger(e.go.h))
     &&Array.isArray(e.ch)&&e.ch.every(c=>obj(c)&&typeof c.id==="string"&&str(c.b)&&str(c.a)&&Number.isInteger(c.bi)&&Number.isInteger(c.ai)&&rd(c.b,c.id)&&rd(c.a,c.id))
     &&(e.cs==null||obj(e.cs)&&typeof e.cs.b==="string"&&typeof e.cs.a==="string"&&pj(e.cs.b,Array.isArray)&&pj(e.cs.a,Array.isArray))
-    &&(e.me==null||obj(e.me)&&str(e.me.b)&&str(e.me.a));
+    &&(e.me==null||obj(e.me)&&str(e.me.b)&&str(e.me.a))
+    &&(e.mp==null||obj(e.mp)&&typeof e.mp.b==="string"&&typeof e.mp.a==="string"&&pj(e.mp.b,mo)&&pj(e.mp.a,mo));
   if(!obj(o)||o.v!==1||!Array.isArray(o.u)||!Array.isArray(o.r)||!o.u.every(ok)||!o.r.every(ok))return;
   const[e,side]=o.u.length?[o.u[o.u.length-1],"a"]:o.r.length?[o.r[o.r.length-1],"b"]:[null,null];
-  if(e&&(e.ch.some(c=>((HB.m.get(c.id)||{}).j??null)!==c[side])||e.cs&&e.cs[side]!==HB.cs||e.me&&e.me[side]!==HB.me))return;
+  if(e&&(e.ch.some(c=>((HB.m.get(c.id)||{}).j??null)!==c[side])||e.cs&&e.cs[side]!==HB.cs||e.me&&e.me[side]!==HB.me||e.mp&&e.mp[side]!==HB.mp))return;
   HIST={u:o.u.slice(-HMAX),r:o.r}}
 // Etiqueta, clave de grupo y hoyo de cada acción de onClick que cambia datos (null: las demás)
 const CELLK={s:"s",sset:"s",pt:"pt",pen:"pen",fw:"fw",bk:"bk",g1:"pd",gc:"ch",gm:"ms"};
 const CELLT={s:"score",pt:"putts",pen:"penalidades",fw:"drive",bk:"bunker",pd:"primer putt",ch:"golpes cerca del green",ms:"green errado"};
 // Las marcas de GPS (gpc, gpn, gpsdel) son de la celda de "Yo"; i es el índice de la marca y n su número antes del cambio
 function actOf(a,v,r,h,p,i){const one=t=>({t,k:null,go:null}),byId=id=>S.rounds.find(x=>x.id===id);
+  if(["hmclr","hmadd","hmdel","hmside"].includes(a))return ui.hm?hmAct(ui.hm.cid,ui.hm.h):null;
   if(r&&h!=null){const go={id:r.id,h},n=h+1;
     if(has(CELLK,a)&&r.players[p]!=null)return{t:`${CELLT[CELLK[a]]} de ${nm(r,p)} en el hoyo ${n}`,k:`${r.id}|${h}|${p}|${CELLK[a]}`,go};
     if(a==="gpc"||a==="gpn"||a==="gpsdel"){const x=gpsMe(r,h),g=x&&x.gps&&x.gps[i];if(!g)return null;const j=nm(r,r.me),q=`${r.id}|${h}|${r.me}|`;
@@ -1321,6 +1416,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
    <div class="fact"><span class="label">Índice</span><span class="num">${siLab(r,h)}</span></div></div></div></div>
   ${S.focus?"":`<div class="strip">${L.map((hh,i)=>`<button data-a="go" data-v="${i}" class="${comp(r,hh)?"done":""}${!r.closed&&comp(r,hh)&&pend(r,hh).length?" falta":""}" aria-current="${i===k}">${hh+1}</button>`).join("")}</div>`}`;
   html+=S.focus?"":vLive(r);
+  html+=vHmBar(r,h);
   html+=r.closed?`<div class="closedbar"><span><b>Vuelta cerrada.</b> Los scores están bloqueados.</span><button class="btn small" data-a="reopen">Reabrir</button></div><fieldset class="ro" disabled>`:`<fieldset class="ro">`;
   html+=vGpsBar(r,h);
   if(r.games.wolf&&r.players.length===4&&h<gcut(r,"wolf")){const w=k%4,dec=r.wolf[h];
@@ -1684,6 +1780,171 @@ function keepGps(prev,next){let k=0;if(!prev||!next)return k;
   prev.players.forEach((nq,q)=>{const p=next.players.findIndex(n=>pkey(n)===pkey(nq));if(p<0)return;
     hs(next).forEach(h=>{const x=prev.d[h]&&prev.d[h][q];if(!x||!Array.isArray(x.gps)||!inPlay(next,h,p))return;next.d[h][p].gps=clone(x.gps);k++})});
   return k}
+/* ---------- mapa de los hoyos: panel y editor ---------- */
+// Una lectura de GPS con las opciones, el corte y los avisos de markShot: done({la, lo, ac}) o done(null, clave de GMSG).
+// Lo que llega después del corte se ignora
+function hmRead(done){const at=Date.now();let fin=false,t=null;const end=(p,k)=>{if(fin)return;fin=true;clearTimeout(t);done(p,k)};
+  t=setTimeout(()=>end(null,"timeout"),GPS_GUARD);
+  const ok=pos=>{const k=pos&&pos.coords||{},ts=pos&&pos.timestamp;
+    if(!numIn(k.latitude,-90,90)||!numIn(k.longitude,-180,180)||!numIn(k.accuracy,0,100000)||!numIn(ts,0,Infinity)){end(null,"unavail");return}
+    if(ts<at-GPS_OLD){end(null,"old");return}
+    end({la:+k.latitude.toFixed(7),lo:+k.longitude.toFixed(7),ac:Math.round(k.accuracy*10)/10})};
+  const err=e=>{const c=e&&e.code;end(null,c===1?"denied":c===3?"timeout":"unavail")};
+  try{navigator.geolocation.getCurrentPosition(ok,err,{enableHighAccuracy:true,timeout:GPS_TO,maximumAge:0})}catch(e){err(null)}}
+// Orígenes de las distancias: cada marca de "Yo" en el hoyo y "Acá" (la última medición, si fue en esta vuelta y este hoyo)
+function hmOrigins(r,h){const x=gpsMe(r,h),out=[];
+  if(x&&Array.isArray(x.gps))[...x.gps].sort((a,b)=>a.n-b.n).forEach(m=>out.push({v:String(m.n),la:m.la,lo:m.lo,ac:m.ac,txt:`el golpe ${m.n}`}));
+  const q=ui.hmPos;if(q&&q.id===r.id&&q.h===h)out.push({v:"aqui",la:q.la,lo:q.lo,ac:q.ac,txt:"acá"});return out}
+const hmTop=(r,h)=>{const x=gpsMe(r,h);return x&&Array.isArray(x.gps)&&x.gps.length?Math.max(...x.gps.map(m=>m.n)):0};
+// El origen elegido vale hasta que aparece una marca más alta que las que había al elegirlo; sin elección, la marca más alta o "Acá"
+function hmFrom(r,h,os){const e=ui.hmOrg[r.id+"|"+h];if(e&&hmTop(r,h)<=e.top){const o=os.find(x=>x.v===e.v);if(o)return o}
+  const ms=os.filter(x=>x.v!=="aqui");return ms.length?ms[ms.length-1]:os[0]||null}
+// Panel de distancias del hoyo: solo si la cancha tiene mapa. Lee lo guardado: no pide imagen ni ubicación
+function vHmBar(r,h){const c=CRS(r);if(isFoot(c)||!hmCourseHas(c.id))return"";
+  const m=holeMap(c.id,h),api=!!navigator.geolocation,busy=!!ui.hmMed;
+  const edit=t=>`<button type="button" class="btn small hmedit-btn" data-a="hmopen" data-v="${esc(c.id)}" data-h="${h}">${t}</button>`;
+  if(!hmHas(m))return`<div class="hmbar"><div class="hmhead"><p class="hmfrom">Este hoyo no tiene mapa.</p><div class="hmbtns">${edit("Cargar mapa")}</div></div></div>`;
+  const os=hmOrigins(r,h),o=hmFrom(r,h,os),d=o?hmDists(m,o):null;
+  const from=o?`Desde ${o.txt} (±${Math.round(o.ac)} m${o.ac>GPS_AC?", impreciso":""})`:r.closed?"Sin golpes marcados en este hoyo.":"Tocá Medir desde acá para ver las distancias.";
+  const med=r.closed?"":`<button type="button" class="btn small hmmed" data-a="hmmed"${busy?' aria-busy="true"':""}${busy||!api?" disabled":""}>${busy?"Midiendo…":"Medir desde acá"}</button>`;
+  const row=(cl,a,b,k)=>`<div class="hmrow ${cl}"${k?` data-k="${k}"`:""}><span>${a}</span><b>${b}</b></div>`;
+  let rows="";
+  if(d){if(d.g)rows+=row("hmg","Green · frente · centro · fondo",d.g.map(v=>v??"–").join(" · ")+" yd");
+    d.o.forEach(x=>{rows+=row("hmo",HM_KINDS[x.k]+(x.l?" "+HM_SIDES[x.l]:""),x.k==="o"?`a ${x.a} yd`:x.a!=null&&x.b!=null?`llegar ${x.a} · pasar ${x.b} yd`:x.a!=null?`llegar ${x.a} yd`:`pasar ${x.b} yd`,x.k)})}
+  const chips=os.length>1?`<div class="row hmorgs">${os.map(x=>`<button type="button" class="chip hmorg" data-a="hmorg" data-v="${x.v}" aria-pressed="${x===o}">${x.v==="aqui"?"Acá":"Golpe "+x.v}</button>`).join("")}</div>`:"";
+  const msg=ui.hmBarMsg&&ui.hmBarMsg.id===r.id&&ui.hmBarMsg.h===h?`<p class="hmmsg" role="status">${esc(ui.hmBarMsg.txt)}</p>`:"";
+  return`<div class="hmbar"><div class="hmhead"><p class="hmfrom">${from}</p><div class="hmbtns">${med}${edit("Editar")}</div></div>${rows}${chips}${msg}</div>`}
+function hmPick(v){const r=R();if(!r||S.view!=="hole")return;const h=hs(r)[Math.min(r.cur,r.n-1)];
+  if(!hmOrigins(r,h).some(x=>x.v===v))return;ui.hmOrg[r.id+"|"+h]={v,top:hmTop(r,h)};render()}
+// "Medir desde acá": la lectura no se guarda (vive en ui.hmPos) y queda elegida como origen en el hoyo donde se tocó
+function measureHere(){if(ui.hmMed||!navigator.geolocation)return;const r=R();if(!r||r.closed||S.view!=="hole")return;
+  const id=r.id,h=hs(r)[Math.min(r.cur,r.n-1)];ui.hmMed={id,h};ui.hmBarMsg=null;render();
+  const here=()=>{const q=R();return S.view==="hole"&&!!q&&q.id===id&&hs(q)[Math.min(q.cur,q.n-1)]===h},redraw=()=>{if(S.view==="hole")render()};
+  hmRead((p,k)=>{ui.hmMed=null;const t=S.rounds.find(q=>q.id===id);
+    if(!p){if(here())ui.hmBarMsg={id,h,txt:GMSG[k]};else toast(GMSG[k]);redraw();return}
+    if(!t||t.closed||!hs(t).includes(h)){redraw();toast("No se usó la medición: la vuelta cambió.");return}
+    ui.hmPos={id,h,la:p.la,lo:p.lo,ac:p.ac};ui.hmOrg[id+"|"+h]={v:"aqui",top:hmTop(t,h)};
+    if(!here())toast(`Medido en el hoyo ${h+1} (±${Math.round(p.ac)} m)`);redraw()})}
+// Web Mercator: píxeles del mundo a zoom z (256·2^z de lado) y de vuelta
+const hmPx=(p,z)=>{const n=256*2**z,s=Math.sin(p.la*Math.PI/180);return[(p.lo+180)/360*n,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]};
+function hmLL(dx,dy){const v=ui.hm;if(!v||v.la==null)return null;const n=256*2**v.z,[cx,cy]=hmPx(v,v.z),x=cx+dx,y=cy+dy;
+  return{la:+(Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI).toFixed(7),lo:+(x/n*360-180).toFixed(7)}}
+// Casilleros del editor, en el orden de la lista: s código, t texto, a etiqueta para aria-label, c texto del punto en la imagen,
+// p el punto (o null), i el obstáculo
+function hmSlots(m){const g=m&&m.g||{},out=[["f","Frente del green","F"],["c","Centro del green","C"],["b","Fondo del green","Fo"]].map(([k,t,c])=>({s:"g"+k,t,a:t,c,p:hmPtOk(g[k])?g[k]:null}));
+  const n={b:0,w:0,o:0};
+  (m&&Array.isArray(m.o)?m.o:[]).forEach((x,i)=>{const j=++n[x.k];
+    if(x.k==="o"){const p=Array.isArray(x.p)?x.p:[];p.forEach((q,k)=>out.push({s:`${i}p${k}`,t:`Punto ${k+1}`,a:`punto ${k+1} del fuera de límites ${j}`,c:`FL${j}·${k+1}`,p:q,i}));
+      if(p.length<HM_MAXP)out.push({s:`${i}p+`,t:"Agregar punto",a:`punto ${p.length+1} del fuera de límites ${j}`,c:"",p:null,i});return}
+    const w=x.k==="b"?["bunker","B"]:["agua","A"];
+    out.push({s:i+"e",t:"Entrada",a:`entrada del ${w[0]} ${j}`,c:`${w[1]}${j}↓`,p:hmPtOk(x.e)?x.e:null,i},{s:i+"s",t:"Salida",a:`salida del ${w[0]} ${j}`,c:`${w[1]}${j}↑`,p:hmPtOk(x.s)?x.s:null,i})});
+  return out}
+// Claves propias siempre: un id de cancha puede llamarse "constructor" o "__proto__" (M[k]={} cambiaría el prototipo)
+const ownSet=(o,k,v)=>{Object.defineProperty(o,k,{value:v,writable:true,enumerable:true,configurable:true});return v};
+const hmMk=(cid,h)=>{if(!plainObj(S.maps))S.maps={};const M=S.maps,k="h"+h,C=has(M,cid)?M[cid]:ownSet(M,cid,{});return has(C,k)?C[k]:ownSet(C,k,{})};
+// Lo que queda vacío se borra: g sin puntos, p y o vacíos, el hoyo sin g ni o, la cancha sin hoyos y S.maps sin canchas
+function hmPrune(cid,h){const M=S.maps;if(!plainObj(M)||!has(M,cid))return;const C=M[cid],k="h"+h,m=has(C,k)?C[k]:null;
+  if(m){if(m.g&&!["f","c","b"].some(k=>has(m.g,k)))delete m.g;
+    if(Array.isArray(m.o)){m.o.forEach(x=>{if(Array.isArray(x.p)&&!x.p.length)delete x.p});if(!m.o.length)delete m.o}
+    if(!m.g&&!m.o)delete C[k]}
+  if(!Object.keys(C).length)delete M[cid];if(!Object.keys(M).length)delete S.maps}
+// Pone (o borra, con p null) el punto del casillero s; en una línea de fuera de límites, borrar corre los que siguen
+function hmPut(cid,h,s,p){const m=hmMk(cid,h),G=s.match(/^g([fcb])$/),E=s.match(/^(\d+)([es])$/),L=s.match(/^(\d+)p(\d+|\+)$/);
+  if(G){const g=m.g||(m.g={});if(p)g[G[1]]=p;else delete g[G[1]]}
+  else if(E){const x=(m.o||[])[+E[1]];if(x&&x.k!=="o"){if(p)x[E[2]]=p;else delete x[E[2]]}}
+  else if(L){const x=(m.o||[])[+L[1]];if(x&&x.k==="o"){const a=x.p||(x.p=[]);
+    if(L[2]==="+"){if(p&&a.length<HM_MAXP)a.push(p)}else if(+L[2]<a.length){if(p)a[+L[2]]=p;else a.splice(+L[2],1)}}}
+  hmPrune(cid,h)}
+// Etiqueta y clave de deshacer de los cambios del editor: los toques seguidos en el mismo hoyo son un solo cambio
+const hmAct=(cid,h)=>{const c=S.courses.find(x=>x.id===cid);return c?{t:`mapa del hoyo ${h+1} de ${c.name}`,k:`hm|${cid}|${h}`,go:null}:null};
+function hmSave(cid,h,s,p){ui.act=hmAct(cid,h);hmPut(cid,h,s,p);save()}
+// Centro de la vista: el promedio de los puntos del hoyo; si no tiene, el de los de la cancha; si no, HM_CENTER
+function hmCenter(cid,h){const avg=ps=>ps.length?{la:ps.reduce((a,p)=>a+p.la,0)/ps.length,lo:ps.reduce((a,p)=>a+p.lo,0)/ps.length}:null;
+  const pts=m=>hmSlots(m).map(x=>x.p).filter(Boolean),C=plainObj(S.maps)&&has(S.maps,cid)?S.maps[cid]:{};
+  return avg(pts(holeMap(cid,h)))||avg(Object.values(C).flatMap(pts))||(has(HM_CENTER,cid)?{...HM_CENTER[cid]}:null)}
+function hmOpen(cid,h){const c=S.courses.find(x=>x.id===cid);if(!c||isFoot(c))return false;
+  const hh=Number.isInteger(h)&&h>=0&&h<18?h:0,ct=hmCenter(cid,hh);
+  ui.hm={cid,h:hh,sel:null,la:ct?ct.la:null,lo:ct?ct.lo:null,z:17,back:{view:S.view==="hole"&&R()?"hole":"rounds"}};
+  ui.hmMsg=null;ui.hmOff=false;ui.hmLLtxt="";S.view="hmap";return true}
+// Cambiar de hoyo recentra; si no hay ningún punto ni HM_CENTER, se queda donde estaba (A9 del plan)
+function hmHole(d){const v=ui.hm;if(!v)return;const h=Math.max(0,Math.min(17,v.h+d));if(h===v.h)return;const ct=hmCenter(v.cid,h);
+  v.h=h;v.sel=null;if(ct){v.la=ct.la;v.lo=ct.lo}ui.hmMsg=null}
+// El casillero elegido tiene que existir: si un cambio (deshacer, ✕, Quitar) lo sacó, no queda nada elegido
+function hmSelOk(){const v=ui.hm;if(v&&v.sel!=null&&!hmSlots(holeMap(v.cid,v.h)).some(x=>x.s===v.sel))v.sel=null}
+// El siguiente casillero vacío después de s, sin volver al principio ("Agregar punto" cuenta como vacío)
+function hmNext(m,s){const sl=hmSlots(m);let i=sl.findIndex(x=>x.s===s);
+  if(i<0){const q=s.match(/^(\d+)p\+$/);if(q)i=sl.map(x=>x.i===+q[1]).lastIndexOf(true)}
+  const nx=sl.slice(i+1).find(x=>!x.p);return nx?nx.s:null}
+// Toque en la imagen, en px desde el centro de .hmmap: carga el casillero elegido (sin ac) y elige el siguiente vacío
+function hmTap(dx,dy){const v=ui.hm;if(!v||S.view!=="hmap"||v.la==null)return;ui.hmMsg=null;hmSelOk();
+  const say=t=>{ui.hmMsg={cid:v.cid,h:v.h,txt:t};render()};
+  if(!v.sel)return say("Elegí primero qué punto cargar en la lista.");
+  if(v.z<HM_ZPUT)return say("Acercá la imagen con + para cargar puntos.");
+  const s=v.sel;hmSave(v.cid,v.h,s,hmLL(dx,dy));const m=holeMap(v.cid,v.h);
+  v.sel=/p\+$/.test(s)&&hmSlots(m).some(x=>x.s===s)?s:hmNext(m,s);vib(8);render()}
+// "Mi ubicación" de un casillero: se guarda solo si el mapa del hoyo no cambió mientras esperaba y la precisión alcanza
+function hmGps(s){const v=ui.hm;if(!v||ui.hmBusy||!navigator.geolocation||!hmSlots(holeMap(v.cid,v.h)).some(x=>x.s===s))return;
+  const cid=v.cid,h=v.h,sig=JSON.stringify(holeMap(cid,h));ui.hmBusy={cid,h,s};ui.hmMsg=null;render();
+  hmRead((p,k)=>{ui.hmBusy=null;const on=()=>S.view==="hmap"&&!!ui.hm&&ui.hm.cid===cid&&ui.hm.h===h,redraw=()=>{if(S.view==="hmap")render()};
+    const fail=t=>{if(on())ui.hmMsg={cid,h,txt:t};else toast(t);redraw();vib([20,40,20])};
+    if(!p)return fail(GMSG[k]);
+    if(!S.courses.some(c=>c.id===cid)||JSON.stringify(holeMap(cid,h))!==sig){redraw();toast("No se guardó el punto: el mapa cambió.");return}
+    if(p.ac>GPS_AC)return fail(`Precisión ±${Math.round(p.ac)} m: no se guardó el punto. Probá de nuevo a cielo abierto.`);
+    hmSave(cid,h,s,p);redraw();vib(8);toast(on()?`Punto cargado (±${Math.round(p.ac)} m)`:`Punto cargado en el hoyo ${h+1} (±${Math.round(p.ac)} m)`)})}
+// "Mi ubicación" de la imagen: centra la vista ahí (cualquier precisión); no carga ningún punto
+function hmHere(){const v=ui.hm;if(!v||ui.hmBusy||!navigator.geolocation)return;const cid=v.cid;ui.hmBusy={cid,h:v.h,s:null};ui.hmMsg=null;render();
+  hmRead((p,k)=>{ui.hmBusy=null;const w=ui.hm;
+    if(S.view==="hmap"&&w&&w.cid===cid){if(p){w.la=p.la;w.lo=p.lo}else ui.hmMsg={cid,h:w.h,txt:GMSG[k]}}
+    if(S.view==="hmap")render()})}
+function hmGo(){const v=ui.hm,el=document.getElementById("hm-ll");if(!v||!el)return;const t=el.value,q=t.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if(q&&numIn(+q[1],-90,90)&&numIn(+q[2],-180,180)){v.la=+q[1];v.lo=+q[2];ui.hmMsg=null;ui.hmLLtxt=""}
+  else{ui.hmMsg={cid:v.cid,h:v.h,txt:"Coordenadas no válidas. Ejemplo: -38.0629, -57.5823"};ui.hmLLtxt=t}render()}
+// Editor del mapa: la imagen (los tiles los pone hmDraw, que necesita el tamaño de .hmmap) y la lista de casilleros
+function vHmEdit(){const v=ui.hm,c=v&&S.courses.find(x=>x.id===v.cid);if(!c||isFoot(c)){ui.hm=null;S.view="rounds";return vRounds()}hmSelOk();
+  const m=holeMap(c.id,v.h),sl=hmSlots(m),bz=ui.hmBusy,api=!!navigator.geolocation,o=m&&Array.isArray(m.o)?m.o:[];
+  const msg=ui.hmMsg&&ui.hmMsg.cid===c.id&&ui.hmMsg.h===v.h?`<p class="hmmsg" role="status">${esc(ui.hmMsg.txt)}</p>`:"";
+  const slot=x=>`<div class="hmslot" data-s="${x.s}"><button type="button" class="hmsel" data-a="hmsel" data-s="${x.s}" aria-pressed="${v.sel===x.s}">${x.t}</button><span class="hmst">${!x.p?"sin cargar":has(x.p,"ac")?`GPS ±${Math.round(x.p.ac)} m`:"de la imagen"}</span><button type="button" class="btn small" data-a="hmgps" data-s="${x.s}" aria-label="Cargar ${x.a} con el GPS"${bz||!api?" disabled":""}>${bz&&bz.s===x.s&&bz.cid===c.id&&bz.h===v.h?"Buscando GPS…":"Mi ubicación"}</button>${x.p?`<button type="button" class="btn small" data-a="hmclr" data-s="${x.s}" aria-label="Borrar ${x.a}">✕</button>`:""}</div>`;
+  let list=sl.filter(x=>x.i==null).map(slot).join("");const n={b:0,w:0,o:0};
+  o.forEach((x,i)=>{const nm=`${HM_KINDS[x.k]} ${++n[x.k]}`;
+    list+=`<div class="hmobs" data-i="${i}"><b>${nm}</b><div class="seg" role="group" aria-label="Lado de ${nm}">${Object.entries(HM_SIDES).map(([k,t])=>`<button type="button" data-a="hmside" data-i="${i}" data-v="${k}" aria-pressed="${x.l===k}">${t}</button>`).join("")}</div><button type="button" class="btn small" data-a="hmdel" data-i="${i}">Quitar</button></div>`+sl.filter(q=>q.i===i).map(slot).join("")});
+  let img;
+  if(v.la==null)img=`<div class="hmnone"><p>Para ubicar la cancha, tocá Mi ubicación estando ahí o pegá sus coordenadas.</p><div class="row"><input id="hm-ll" value="${esc(ui.hmLLtxt||"")}" placeholder="-38.0629, -57.5823" inputmode="decimal" autocomplete="off" aria-label="Coordenadas de la cancha"><button type="button" class="btn" data-a="hmgo">Ir</button></div></div>`;
+  else{const[cx,cy]=hmPx(v,v.z),pts=sl.filter(x=>x.p).map(x=>{const[px,py]=hmPx(x.p,v.z);return`<span class="hmpt${v.sel===x.s?" on":""}" data-s="${x.s}" style="left:${(px-cx).toFixed(1)}px;top:${(py-cy).toFixed(1)}px">${x.c}</span>`}).join("");
+    img=`<div class="hmmap"><div class="hmlayer">${pts}</div><div class="hmzoom"><button type="button" data-a="hmzoom" data-v="1" aria-label="Acercar"${v.z>=HM_ZMAX?" disabled":""}>+</button><button type="button" data-a="hmzoom" data-v="-1" aria-label="Alejar"${v.z<=HM_ZMIN?" disabled":""}>−</button></div></div>`}
+  const full=o.length>=HM_MAXO;
+  return`<div class="stack hmedit"><div class="row hmtop"><h2 id="hmT">Mapa · ${esc(c.name)} · hoyo ${v.h+1}</h2><div class="row"><button type="button" class="btn small" data-a="hmh" data-v="-1" aria-label="Hoyo anterior"${v.h<=0?" disabled":""}>‹</button><button type="button" class="btn small" data-a="hmh" data-v="1" aria-label="Hoyo siguiente"${v.h>=17?" disabled":""}>›</button><button type="button" class="btn small primary" data-a="hmback">Listo</button></div></div>
+  ${img}<div class="hmfoot">${v.la==null?"<span></span>":`<span class="hmattr">Imagen: Esri, Vantor, Earthstar Geographics, and the GIS User Community</span>`}<button type="button" class="btn small" data-a="hmhere"${bz||!api?" disabled":""}>${bz&&bz.s==null?"Buscando GPS…":"Mi ubicación"}</button></div>
+  ${v.la==null?"":`<p class="hmoff"${ui.hmOff?"":" hidden"}>La imagen no cargó (¿sin conexión?). Podés cargar los puntos con Mi ubicación.</p>`}${msg}
+  <div class="stack" style="gap:0">${list}</div>
+  <div class="row">${Object.entries(HM_KINDS).map(([k,t])=>`<button type="button" class="btn small" data-a="hmadd" data-v="${k}"${full?" disabled":""}>+ ${t}</button>`).join("")}</div>
+  <p class="note">Elegí un punto de la lista y tocá la imagen (acercala con + hasta el máximo). Con Mi ubicación se carga donde estás parado, si el GPS da ±${GPS_AC} m o menos.</p></div>`}
+// Tiles de la imagen: hasta el zoom HM_TMAX se piden; más cerca se agrandan los de HM_TMAX. Cubren .hmmap más un tile de margen
+function hmDraw(){const v=ui.hm,el=document.querySelector(".hmmap"),ly=el&&el.querySelector(".hmlayer");if(!v||v.la==null||!ly)return;
+  const W=el.clientWidth,H=el.clientHeight,tz=Math.min(v.z,HM_TMAX),ts=256*2**(v.z-tz),n=2**tz,[cx,cy]=hmPx(v,v.z);
+  const x0=Math.floor((cx-W/2)/ts)-1,x1=Math.floor((cx+W/2)/ts)+1,y0=Math.max(0,Math.floor((cy-H/2)/ts)-1),y1=Math.min(n-1,Math.floor((cy+H/2)/ts)+1),fr=document.createDocumentFragment();
+  for(let j=y0;j<=y1;j++)for(let i=x0;i<=x1;i++){const im=document.createElement("img");im.className="hmtile";im.alt="";im.draggable=false;
+    im.style.cssText=`left:${i*ts-cx}px;top:${j*ts-cy}px;width:${ts}px;height:${ts}px`;im.addEventListener("error",hmTileErr);
+    im.src=HM_TILE.replace("{z}",tz).replace("{y}",j).replace("{x}",(i%n+n)%n);fr.appendChild(im)}
+  ly.insertBefore(fr,ly.firstChild)}
+// El primer tile que falla muestra el aviso, sin redibujar
+function hmTileErr(){ui.hmOff=true;const o=document.querySelector(".hmoff");if(o)o.hidden=false}
+// Apretar y soltar en la imagen: más de HM_TAP px mueve la vista; menos es un toque donde se apretó
+// Con dos dedos o más el gesto no carga ni mueve nada: se espera a que se suelten todos. Es de varios dedos si, con
+// uno apretado en .hmmap, baja otro puntero (no primario) en cualquier parte de la página, aunque se haya redibujado.
+// Un puntero primario, o uno con el mismo id, empieza un gesto nuevo: así un pointerup que nunca llegó no traba nada
+let hmPtr=null;
+function onHmDown(e){const d=hmPtr;
+  if(d&&!e.isPrimary&&!d.on.has(e.pointerId)){d.on.add(e.pointerId);d.multi=true;const ly=document.querySelector(".hmmap .hmlayer");if(ly)ly.style.transform="";return}
+  hmPtr=null;const el=e.target.closest&&e.target.closest(".hmmap");if(!el||S.view!=="hmap"||e.button>0||e.target.closest("button"))return;e.preventDefault();
+  const b=el.getBoundingClientRect();hmPtr={id:e.pointerId,x0:e.clientX,y0:e.clientY,cx:b.left+b.width/2,cy:b.top+b.height/2,on:new Set([e.pointerId]),multi:false};try{el.setPointerCapture(e.pointerId)}catch(x){}}
+function onHmMove(e){const d=hmPtr;if(!d||d.multi||e.pointerId!==d.id)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0,ly=document.querySelector(".hmmap .hmlayer");
+  if(ly)ly.style.transform=Math.hypot(dx,dy)>HM_TAP?`translate(${dx}px,${dy}px)`:""}
+function onHmUp(e){const d=hmPtr;if(!d||!d.on.has(e.pointerId))return;d.on.delete(e.pointerId);
+  if(d.multi){if(!d.on.size){hmPtr=null;if(S.view==="hmap")render()}return}
+  hmPtr=null;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+  if(e.type==="pointercancel"||S.view!=="hmap"){render();return}
+  if(Math.hypot(dx,dy)>HM_TAP){const p=hmLL(-dx,-dy);if(p){ui.hm.la=p.la;ui.hm.lo=p.lo}render();return}
+  hmTap(d.x0-d.cx,d.y0-d.cy)}
 function vImg(){if(!ui.img)return"";
   return`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="imgT"><div class="sheet-bg" data-a="imgclose"></div><div class="sheet-p">
   <div class="grab"></div><div class="row" style="justify-content:space-between"><h2 id="imgT">Imagen de la vuelta</h2><button class="btn small" data-a="imgclose">Cerrar</button></div>
@@ -1837,7 +2098,7 @@ function vCourses(){const cs=courses();
   return`<div class="label" style="margin-top:8px">Canchas</div><div class="rlist">${cs.map(c=>{const n=roundsOn(c.id).length;
     return`<div class="ritem"><div class="row" style="justify-content:space-between"><b>${esc(c.name)}</b><span class="note">par ${sum18(c.par)} · ${n} vuelta${n===1?"":"s"}</span></div>
     <div class="note">${c.club?esc(c.club)+" · ":""}${Object.keys(c.tees).map(k=>`${teeDot(c,k)} ${esc(c.tees[k].name)}`).join(" ")}</div>
-    <div class="row"><button class="btn small" data-a="copen" data-v="${esc(c.id)}">Editar</button>${n||cs.length<2?"":ui.pendingCDel===c.id?`<button class="btn small danger" data-a="cdelok" data-v="${esc(c.id)}">Confirmar borrado</button><button class="btn small" data-a="cdelno">Cancelar</button>`:`<button class="btn small" data-a="cdel" data-v="${esc(c.id)}">Borrar</button>`}</div></div>`}).join("")}</div>
+    <div class="row"><button class="btn small" data-a="copen" data-v="${esc(c.id)}">Editar</button>${isFoot(c)?"":`<button class="btn small" data-a="hmopen" data-v="${esc(c.id)}">Mapa</button>`}${n||cs.length<2?"":ui.pendingCDel===c.id?`<button class="btn small danger" data-a="cdelok" data-v="${esc(c.id)}">Confirmar borrado</button><button class="btn small" data-a="cdelno">Cancelar</button>`:`<button class="btn small" data-a="cdel" data-v="${esc(c.id)}">Borrar</button>`}</div></div>`}).join("")}</div>
   <button class="btn" data-a="cnew">+ Cargar una cancha</button>
   <p class="note">Con la tarjeta del club a mano: par, índice y distancias de cada salida. Cuando compartís una vuelta, la cancha viaja con ella.</p>`}
 
@@ -1925,23 +2186,25 @@ function render(){applyTheme();document.documentElement.classList.toggle("focusi
   // Deshacer y rehacer: sin nada en la pila, o con un formulario abierto (el borrador se pisaría), quedan deshabilitados
   const lock=["setup","course","incoming"].includes(v);[["undo","u","Deshacer"],["redo","r","Rehacer"]].forEach(([id,k,w])=>{const bt=document.getElementById(id);if(!bt)return;
     const st=HIST[k],t=st.length?`${w}: ${st[st.length-1].t}`:w;bt.disabled=lock||!st.length;bt.title=t;bt.setAttribute("aria-label",t)});
-  document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||((v==="setup"||v==="course")&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
+  document.getElementById("tabs").innerHTML=TABS.map(([k,t])=>`<button class="tab" data-a="tab" data-v="${k}" aria-current="${v===k||((v==="setup"||v==="course"||v==="hmap")&&k==="rounds")?"page":"false"}">${t}</button>`).join("");
   const nv=document.querySelector("nav.tabs");if(nv)document.documentElement.style.setProperty("--tabsh",nv.offsetHeight+"px");
-  app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():vGames(r)}
+  app.innerHTML=!r&&!["rounds","setup","course","incoming","games","stats","hmap"].includes(v)?vEmpty():v==="incoming"?vIncoming():v==="hole"?vHole(r):v==="card"?vCard(r):v==="stats"?vStats(r):v==="rounds"?vRounds():v==="setup"?vSetup():v==="course"?vCourse():v==="hmap"?vHmEdit():vGames(r);
+  if(S.view==="hmap")hmDraw()}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
   if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen","gps","gpsopen","gpk","gpc","gpn","gpsdel"].includes(a))return;
   if(S.view==="course")readCDraft();const cd=ui.cdraft;
   // Para deshacer: qué cambio es este y si sigue el grupo del toque anterior (los controles de una celda, el número y el palo de una marca)
   const gi=+b.dataset.i,gx=r&&a.startsWith("gp")?gpsMe(r,h):null,gm=gx&&gx.gps&&gx.gps[gi];
-  ui.act=actOf(a,v,r,h,p,gi);if(!has(CELLK,a)&&!["gpn","gpc","gpk"].includes(a))ui.grp=null;
+  // Las acciones del mapa no cortan el grupo: elegir un casillero entre dos toques en el mismo hoyo sigue siendo un solo cambio
+  ui.act=actOf(a,v,r,h,p,gi);if(!has(CELLK,a)&&!["gpn","gpc","gpk"].includes(a)&&!a.startsWith("hm"))ui.grp=null;
   switch(a){
    case"cnew":openCourse(null,"rounds");scrollTop=true;break;
    case"copen":openCourse(v,"rounds");scrollTop=true;break;
    case"cback":S.view=cd&&cd.back==="setup"&&ui.draft?"setup":"rounds";ui.cdraft=null;scrollTop=true;break;
    case"cdel":ui.pendingCDel=v;break;
    case"cdelno":ui.pendingCDel=null;break;
-   case"cdelok":if(!roundsOn(v).length&&S.courses.length>1)S.courses=S.courses.filter(x=>x.id!==v);ui.pendingCDel=null;break;
+   case"cdelok":if(!roundsOn(v).length&&S.courses.length>1){S.courses=S.courses.filter(x=>x.id!==v);if(S.maps&&has(S.maps,v)){delete S.maps[v];if(!Object.keys(S.maps).length)delete S.maps}}ui.pendingCDel=null;break;
    case"cunit":cd.unit=v;break;
    case"ctsel":cd.sel=+v;break;
    case"ctadd":if(cd.tees.length<MAXT){cd.tees.push(newTee(cd));cd.sel=cd.tees.length-1}break;
@@ -1952,8 +2215,8 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      // si el nombre era el del color, cambia con él
      if(!t.name.trim()||TPAL.some(x=>x[0]===t.name.trim()))t.name=nx[0];t.color=nx[1];break}
    case"cdef":cd.def=cd.tees[+v].k;break;
-   case"tab":S.view=v;ui.setupErr="";ui.gs=null;ui.shots=false;ui.gpsMsg=null;scrollTop=true;break;
-   case"go":ui.gs=null;ui.shots=false;ui.gpsMsg=null;if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
+   case"tab":S.view=v;ui.setupErr="";ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;scrollTop=true;break;
+   case"go":ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;if(b.dataset.chk&&!r.closed&&!pendGate(r,h)){vib([20,40,20]);break}ui.warned=null;{const t=Math.max(0,Math.min(r.n-1,+v));ui.dir=Math.sign(t-r.cur);r.cur=t}scrollTop=true;break;
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
@@ -1973,6 +2236,24 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"gpc":if(!gm)return;if(gm.c===v)delete gm.c;else if(clubOf(v))gm.c=v;else return;ui.gpc=null;break;
    case"gpn":{if(!gm)return;const g=gx.gps,d=+v;if(d<0?gm.n<=1||gi>0&&gm.n-1<=g[gi-1].n:d>0?g[g.length-1].n>=GPS_MAXN:true)return;for(let j=gi;j<g.length;j++)g[j].n+=d;break}
    case"gpsdel":if(!gm)return;gx.gps.splice(gi,1);if(!gx.gps.length){delete gx.gps;ui.shots=false;ui.gpc=null}else if(ui.gpc!=null&&ui.gpc>=gi)ui.gpc=ui.gpc===gi?null:ui.gpc-1;break;
+   // Mapa de los hoyos: lo que no es dato (vista, casillero elegido, zoom, lecturas) no pasa por save()
+   case"hmopen":if(!hmOpen(v,b.dataset.h==null?0:+b.dataset.h))return;render();window.scrollTo(0,0);return;
+   case"hmback":{const bk=ui.hm&&ui.hm.back;ui.hm=null;ui.hmMsg=null;S.view=bk&&bk.view==="hole"&&R()?"hole":"rounds";render();window.scrollTo(0,0);return}
+   case"hmh":hmHole(+v);render();return;
+   case"hmsel":if(!ui.hm)return;ui.hm.sel=ui.hm.sel===b.dataset.s?null:b.dataset.s;ui.hmMsg=null;render();return;
+   case"hmzoom":if(!ui.hm)return;ui.hm.z=Math.max(HM_ZMIN,Math.min(HM_ZMAX,ui.hm.z+(+v)));render();return;
+   case"hmhere":hmHere();return;
+   case"hmgo":hmGo();return;
+   case"hmgps":hmGps(b.dataset.s);return;
+   case"hmmed":measureHere();return;
+   case"hmorg":hmPick(v);return;
+   case"hmclr":{const w=ui.hm;if(!w)return;// En una línea, borrar el punto k corre los que siguen: si el elegido era ese o uno posterior, se suelta
+     const L=b.dataset.s.match(/^(\d+)p(\d+)$/),q=L&&w.sel&&w.sel.match(/^(\d+)p(\d+)$/);if(q&&q[1]===L[1]&&+q[2]>=+L[2])w.sel=null;
+     hmPut(w.cid,w.h,b.dataset.s,null);hmSelOk();ui.hmMsg=null;break}
+   case"hmadd":{const w=ui.hm;if(!w||!has(HM_KINDS,v))return;const m=hmMk(w.cid,w.h),o=m.o||(m.o=[]);
+     if(o.length>=HM_MAXO){hmPrune(w.cid,w.h);return}o.push({k:v});w.sel=v==="o"?(o.length-1)+"p+":(o.length-1)+"e";ui.hmMsg=null;break}
+   case"hmdel":{const w=ui.hm,m=w&&holeMap(w.cid,w.h),i=+b.dataset.i;if(!m||!Array.isArray(m.o)||!m.o[i])return;m.o.splice(i,1);hmPrune(w.cid,w.h);if(w.sel&&w.sel[0]!=="g")w.sel=null;ui.hmMsg=null;break}
+   case"hmside":{const w=ui.hm,m=w&&holeMap(w.cid,w.h),x=m&&Array.isArray(m.o)&&m.o[+b.dataset.i];if(!x||!has(HM_SIDES,v))return;if(x.l===v)delete x.l;else x.l=v;break}
    case"undo":undo();return;
    case"redo":redo();return;
    case"wolf":{const val=v==="lone"||v==="blind"?v:+v;r.wolf[h]=r.wolf[h]===val?null:val;break}
@@ -1999,7 +2280,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"open":{S.cur=v;const t=R();S.statsP=t&&t.me!=null?t.me:0;S.view=t&&!t.closed?"hole":"card";scrollTop=true;break}
    case"card":{if(!S.rounds.some(x=>x.id===v))return;S.cur=v;const t=R();S.statsP=t.me!=null?t.me:0;S.view="card";scrollTop=true;break}
    case"home":{const t=homeR();if(!t)return;S.cur=t.id;S.statsP=t.me!=null?t.me:0;scrollTop=true;break}
-   case"goh":{if(!r)return;const i=hs(r).indexOf(+v);if(i<0)return;ui.gs=null;ui.warned=null;ui.dir=0;r.cur=i;S.view="hole";scrollTop=true;break}
+   case"goh":{if(!r)return;const i=hs(r).indexOf(+v);if(i<0)return;ui.gs=null;ui.hmBarMsg=null;ui.warned=null;ui.dir=0;r.cur=i;S.view="hole";scrollTop=true;break}
    case"del":ui.pendingDel=v;break;
    case"delno":ui.pendingDel=null;break;
    case"delok":S.rounds=S.rounds.filter(x=>x.id!==v);ui.pendingDel=null;
@@ -2069,7 +2350,8 @@ function init(){S=load();histBase();loadHist();if(!S.view)S.view="games";documen
   document.addEventListener("input",cInput);
   // El historial de deshacer se guarda al pasar a segundo plano: en la cancha la app se cierra sin aviso
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveHist()});window.addEventListener("pagehide",()=>saveHist());
-  document.addEventListener("pointerdown",onGripDown);document.addEventListener("pointermove",onGripMove);document.addEventListener("pointerup",onGripUp);document.addEventListener("pointercancel",onGripUp);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
+  document.addEventListener("pointerdown",onGripDown);document.addEventListener("pointermove",onGripMove);document.addEventListener("pointerup",onGripUp);document.addEventListener("pointercancel",onGripUp);
+  document.addEventListener("pointerdown",onHmDown);document.addEventListener("pointermove",onHmMove);document.addEventListener("pointerup",onHmUp);document.addEventListener("pointercancel",onHmUp);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
   const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
   try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(S.mode==="sistema")render()})}catch(e){}
   checkHash();window.addEventListener("hashchange",checkHash);askPersist();
@@ -2102,9 +2384,9 @@ function onTouchStart(e){if(S.view!=="hole"||e.touches.length!==1){touch0=null;r
 function onTouchEnd(e){if(!touch0||S.view!=="hole")return;if(ui.shots){touch0=null;return}const t=e.changedTouches[0],dx=t.clientX-touch0.x,dy=t.clientY-touch0.y;touch0=null;
   if(Math.abs(dx)<70||Math.abs(dy)>45)return;const r=R();if(!r)return;
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
-  ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;vib(8);save();render();window.scrollTo(0,0)}
+  ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="ef1435a8ee";
+const VERSION="e7be25caa4";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
