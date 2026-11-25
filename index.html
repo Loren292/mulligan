@@ -1407,7 +1407,7 @@ function vGpsBar(r,h){const x=gpsMe(r,h);if(!x||r.closed&&!has(x,"gps"))return""
   const g=x.gps||[],nx=g.length?g[g.length-1].n+1:1,api=!!navigator.geolocation,busy=!!ui.gpsBusy,full=nx>GPS_MAXN,off=r.closed||!api||busy||full;
   const sum=g.length?`<button type="button" class="gchip on gpssum" data-a="gpsopen"${r.closed?" disabled":""}>${esc(gpsTxt(x))}</button>`:`<span class="gpssum">Sin marcas en este hoyo</span>`;
   const m=!api?"Este navegador no da la ubicación: no se pueden marcar golpes.":ui.gpsMsg&&ui.gpsMsg.id===r.id&&ui.gpsMsg.h===h?ui.gpsMsg.txt:"";
-  return`<div class="gpsbar"><div class="gpsline"><button type="button" class="gpsbtn" data-a="gps" aria-label="Marcar con GPS el golpe ${Math.min(nx,GPS_MAXN)} de ${esc(nm(r,r.me))}"${busy?' aria-busy="true"':""}${off?" disabled":""}>${busy?"Buscando GPS…":full?`${GPS_MAXN} golpes marcados`:`Pegué acá · golpe ${nx}`}</button>${sum}</div>${m?`<p class="gpsmsg" role="status">${esc(m)}</p>`:""}</div>`}
+  return`<div class="gpsbar"><div class="gpsline"><button type="button" class="gpsbtn" data-a="gps" aria-label="Marcar con GPS el golpe ${Math.min(nx,GPS_MAXN)} de ${esc(nm(r,r.me))}"${busy?' aria-busy="true" data-gpsp="shot"':""}${off?" disabled":""}>${busy?gpsLab(ui.gpsBusy,"Buscando GPS…"):full?`${GPS_MAXN} golpes marcados`:`Pegué acá · golpe ${nx}`}</button>${sum}</div>${m?`<p class="gpsmsg" role="status">${esc(m)}</p>`:""}</div>`}
 function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet(r).length>1,c=CRS(r),pl=r.closed?[]:pend(r,h),miss=(p,t)=>pl.some(e=>e[0]===p&&e[1]===t);
   let html=S.focus?vFocusHead(r,k,h,L,c):`<div class="stack">${vAway(r)}
   <div class="hole-head"><div class="hole-no"><small>Hoyo</small><b>${h+1}</b></div>
@@ -1749,10 +1749,37 @@ function vShots(){const r=R();if(!ui.shots||S.view!=="hole"||!r||r.closed)return
   <div class="gsec">${rows}</div>${x.s!=null&&g.some(m=>m.n>x.s)?`<p class="note">Hay marcas después del golpe ${x.s} del score: no cuentan.</p>`:""}
   <p class="note">La distancia de un golpe va de su marca a la del golpe siguiente, en línea recta. Si hubo una penalidad o te olvidaste de marcar un golpe, corregí el número: entre números que no siguen no se mide.</p>
   </div></div>`}
-// Una lectura por toque, para "Yo" en el hoyo en pantalla. La respuesta se guarda en el hoyo y la vuelta donde se tocó;
-// la que llega tarde (otro pedido o después del corte de GPS_GUARD) se ignora
+// Una lectura afinada por toque (gpsFix), para "Yo" en el hoyo en pantalla. La respuesta se guarda en el hoyo y la vuelta
+// donde se tocó; cambiar de hoyo o de pantalla corta la lectura y se queda con la mejor que vio
 const GMSG={denied:"Sin permiso de ubicación. Activalo para este sitio en los ajustes del navegador y probá de nuevo.",unavail:"No se pudo leer la ubicación. Probá de nuevo.",
-  timeout:"El GPS no respondió a tiempo. Probá de nuevo, mejor a cielo abierto.",old:"El teléfono dio una ubicación vieja. Probá de nuevo."};
+  timeout:"El GPS no respondió a tiempo. Probá de nuevo, mejor a cielo abierto.",old:"El teléfono dio una ubicación vieja. Probá de nuevo.",
+  cut:"Se cortó el GPS antes de tener una lectura. Probá de nuevo."};
+// Lectura afinada (plan 2026-11-14-gps-afinado): escucha el GPS con watchPosition y termina con la primera lectura de
+// ±GPS_GOOD m o menos; a los GPS_WIN ms, con la mejor que vio (menor ac; si empatan, la última); sin ninguna, con la
+// primera que llegue hasta GPS_GUARD. Un error o una lectura sin números terminan (con la mejor, si hay); una lectura
+// vieja (o que o.fresh rechaza) se ignora. o: {live() sigue el contexto (si no, gpsCut corta), fresh(ts), prog(ac) mejor
+// precisión hasta ahora, done({la, lo, ac, t}) o done(null, clave de GMSG)}. Siempre corta el watch al terminar
+const GPS_GOOD=5,GPS_WIN=12000,gpsRuns=new Set();
+function gpsFix(o){const at=Date.now();let best=null,old=false,wid=null,fin=false,t1=null,t2=null;
+  const geo=navigator.geolocation,stop=()=>{if(wid!=null){try{geo.clearWatch(wid)}catch(e){}wid=null}};
+  const end=k=>{if(fin)return;fin=true;clearTimeout(t1);clearTimeout(t2);gpsRuns.delete(run);stop();
+    if(best)o.done(best);else o.done(null,k||(old?"old":"timeout"))};
+  const run={live:o.live,cut:()=>end(old?"old":"cut")};
+  const ok=pos=>{if(fin)return;const k=pos&&pos.coords||{},ts=pos&&pos.timestamp;
+    if(!numIn(k.latitude,-90,90)||!numIn(k.longitude,-180,180)||!numIn(k.accuracy,0,100000)||!numIn(ts,0,Infinity))return end("unavail");
+    if(ts<at-GPS_OLD||o.fresh&&!o.fresh(ts)){old=true;return}
+    const p={la:+k.latitude.toFixed(7),lo:+k.longitude.toFixed(7),ac:Math.round(k.accuracy*10)/10,t:Math.round(ts)};
+    if(!best||p.ac<=best.ac){best=p;if(o.prog)o.prog(p.ac)}
+    if(best.ac<=GPS_GOOD||Date.now()-at>=GPS_WIN)end()};
+  const err=e=>{if(fin)return;const c=e&&e.code;end(c===1?"denied":c===3?"timeout":"unavail")};
+  gpsRuns.add(run);t1=setTimeout(()=>{if(best)end()},GPS_WIN);t2=setTimeout(()=>end(),GPS_GUARD);
+  try{const w=geo.watchPosition(ok,err,{enableHighAccuracy:true,timeout:GPS_TO,maximumAge:0});if(fin){try{geo.clearWatch(w)}catch(e){}}else wid=w}catch(e){err(null)}}
+// Corta las lecturas cuyo contexto (hoyo o pantalla) ya no está; all: todas (la app pasó a segundo plano)
+function gpsCut(all){[...gpsRuns].forEach(r=>{if(all||!r.live())r.cut()})}
+// Mientras escucha, el botón muestra la mejor precisión: se cambia solo su texto, sin redibujar (en el editor del mapa,
+// redibujar borraría lo escrito en las coordenadas)
+const gpsLab=(b,t)=>b&&b.ac!=null?`GPS ±${Math.round(b.ac)} m…`:t;
+function gpsShow(){const B={shot:ui.gpsBusy,med:ui.hmMed,hm:ui.hmBusy};document.querySelectorAll("[data-gpsp]").forEach(el=>{const b=B[el.dataset.gpsp];if(b&&b.ac!=null)el.textContent=gpsLab(b,"")})}
 let gpsTok=0;
 function markShot(){if(ui.gpsBusy||!navigator.geolocation)return;const r=R();if(!r||r.closed||S.view!=="hole")return;
   const h=hs(r)[Math.min(r.cur,r.n-1)],x=gpsMe(r,h);if(!x||x.gps&&x.gps[x.gps.length-1].n>=GPS_MAXN)return;
@@ -1762,18 +1789,16 @@ function markShot(){if(ui.gpsBusy||!navigator.geolocation)return;const r=R();if(
   const redraw=()=>{if(S.view==="hole")render()},here=()=>{const q=R();return S.view==="hole"&&!!q&&q.id===id&&hs(q)[Math.min(q.cur,q.n-1)]===h};
   const fail=k=>{ui.gpsBusy=null;if(here())ui.gpsMsg={id,h,txt:GMSG[k]};else toast(GMSG[k]);redraw();vib([20,40,20])};
   ui.gpsBusy={tok,id,h,at,me};ui.gpsMsg=null;ui.act=null;render();
-  setTimeout(()=>{if(live())fail("timeout")},GPS_GUARD);
-  const ok=pos=>{if(!live())return;ui.gpsBusy=null;const t=S.rounds.find(q=>q.id===id),c=t&&!t.closed&&hs(t).includes(h)&&t.players[t.me]!=null&&pkey(nm(t,t.me))===me?gpsMe(t,h):null;
+  const cell=()=>{const t=S.rounds.find(q=>q.id===id);return t&&!t.closed&&hs(t).includes(h)&&t.players[t.me]!=null&&pkey(nm(t,t.me))===me?gpsMe(t,h):null};
+  const ok=p=>{ui.gpsBusy=null;const t=S.rounds.find(q=>q.id===id),c=cell();
     if(!c){redraw();toast("No se guardó la marca: la vuelta cambió.");return}
-    const k=pos&&pos.coords||{},ts=pos&&pos.timestamp;
-    if(!numIn(k.latitude,-90,90)||!numIn(k.longitude,-180,180)||!numIn(k.accuracy,0,100000)||!numIn(ts,0,Infinity)){fail("unavail");return}
-    const g=c.gps||[];if(ts<at-GPS_OLD||g.some(q=>ts<=q.t)){fail("old");return}
+    const g=c.gps||[];if(g.some(q=>p.t<=q.t)){fail("old");return}
     const n=g.length?g[g.length-1].n+1:1;if(n>GPS_MAXN){redraw();return}
-    const m={n,la:+k.latitude.toFixed(7),lo:+k.longitude.toFixed(7),ac:Math.round(k.accuracy*10)/10,t:Math.round(ts)};c.gps=[...g,m];
+    const m={n,la:p.la,lo:p.lo,ac:p.ac,t:p.t};c.gps=[...g,m];
     ui.act={t:`golpe ${n} de ${nm(t,t.me)} en el hoyo ${h+1}`,k:null,go:{id,h}};save();redraw();vib(8);
     toast(m.ac>GPS_AC?`Golpe ${n} marcado, con poca precisión (±${Math.round(m.ac)} m): no cuenta para las stats.`:`Golpe ${n} marcado (±${Math.round(m.ac)} m)`)};
-  const err=e=>{if(!live())return;const c=e&&e.code;fail(c===1?"denied":c===3?"timeout":"unavail")};
-  try{navigator.geolocation.getCurrentPosition(ok,err,{enableHighAccuracy:true,timeout:GPS_TO,maximumAge:0})}catch(e){err(null)}}
+  gpsFix({live:here,fresh:ts=>{const c=cell();return!c||!(c.gps||[]).some(q=>ts<=q.t)},prog:ac=>{if(live()){ui.gpsBusy.ac=ac;gpsShow()}},
+    done:(p,k)=>{if(!live())return;if(p)ok(p);else fail(k)}})}
 // "Actualizar la mía": las marcas no viajan en el link, así que se copian de la vuelta del teléfono por nombre de jugador.
 // Devuelve cuántas celdas copió
 function keepGps(prev,next){let k=0;if(!prev||!next)return k;
@@ -1781,16 +1806,9 @@ function keepGps(prev,next){let k=0;if(!prev||!next)return k;
     hs(next).forEach(h=>{const x=prev.d[h]&&prev.d[h][q];if(!x||!Array.isArray(x.gps)||!inPlay(next,h,p))return;next.d[h][p].gps=clone(x.gps);k++})});
   return k}
 /* ---------- mapa de los hoyos: panel y editor ---------- */
-// Una lectura de GPS con las opciones, el corte y los avisos de markShot: done({la, lo, ac}) o done(null, clave de GMSG).
-// Lo que llega después del corte se ignora
-function hmRead(done){const at=Date.now();let fin=false,t=null;const end=(p,k)=>{if(fin)return;fin=true;clearTimeout(t);done(p,k)};
-  t=setTimeout(()=>end(null,"timeout"),GPS_GUARD);
-  const ok=pos=>{const k=pos&&pos.coords||{},ts=pos&&pos.timestamp;
-    if(!numIn(k.latitude,-90,90)||!numIn(k.longitude,-180,180)||!numIn(k.accuracy,0,100000)||!numIn(ts,0,Infinity)){end(null,"unavail");return}
-    if(ts<at-GPS_OLD){end(null,"old");return}
-    end({la:+k.latitude.toFixed(7),lo:+k.longitude.toFixed(7),ac:Math.round(k.accuracy*10)/10})};
-  const err=e=>{const c=e&&e.code;end(null,c===1?"denied":c===3?"timeout":"unavail")};
-  try{navigator.geolocation.getCurrentPosition(ok,err,{enableHighAccuracy:true,timeout:GPS_TO,maximumAge:0})}catch(e){err(null)}}
+// La lectura afinada de markShot (gpsFix) para el mapa: done({la, lo, ac}) o done(null, clave de GMSG). live: sigue el
+// contexto; b: el objeto de ui que muestra el progreso (su ac)
+function hmRead(done,live,b){gpsFix({live,prog:ac=>{b.ac=ac;gpsShow()},done:(p,k)=>done(p&&{la:p.la,lo:p.lo,ac:p.ac},k)})}
 // Orígenes de las distancias: cada marca de "Yo" en el hoyo y "Acá" (la última medición, si fue en esta vuelta y este hoyo)
 function hmOrigins(r,h){const x=gpsMe(r,h),out=[];
   if(x&&Array.isArray(x.gps))[...x.gps].sort((a,b)=>a.n-b.n).forEach(m=>out.push({v:String(m.n),la:m.la,lo:m.lo,ac:m.ac,txt:`el golpe ${m.n}`}));
@@ -1806,7 +1824,7 @@ function vHmBar(r,h){const c=CRS(r);if(isFoot(c)||!hmCourseHas(c.id))return"";
   if(!hmHas(m))return`<div class="hmbar"><div class="hmhead"><p class="hmfrom">Este hoyo no tiene mapa.</p><div class="hmbtns">${edit("Cargar mapa")}</div></div></div>`;
   const os=hmOrigins(r,h),o=hmFrom(r,h,os),d=o?hmDists(m,o):null;
   const from=o?`Desde ${o.txt} (±${Math.round(o.ac)} m${o.ac>GPS_AC?", impreciso":""})`:r.closed?"Sin golpes marcados en este hoyo.":"Tocá Medir desde acá para ver las distancias.";
-  const med=r.closed?"":`<button type="button" class="btn small hmmed" data-a="hmmed"${busy?' aria-busy="true"':""}${busy||!api?" disabled":""}>${busy?"Midiendo…":"Medir desde acá"}</button>`;
+  const med=r.closed?"":`<button type="button" class="btn small hmmed" data-a="hmmed"${busy?' aria-busy="true" data-gpsp="med"':""}${busy||!api?" disabled":""}>${busy?gpsLab(ui.hmMed,"Midiendo…"):"Medir desde acá"}</button>`;
   const row=(cl,a,b,k)=>`<div class="hmrow ${cl}"${k?` data-k="${k}"`:""}><span>${a}</span><b>${b}</b></div>`;
   let rows="";
   if(d){if(d.g)rows+=row("hmg","Green · frente · centro · fondo",d.g.map(v=>v??"–").join(" · ")+" yd");
@@ -1824,7 +1842,7 @@ function measureHere(){if(ui.hmMed||!navigator.geolocation)return;const r=R();if
     if(!p){if(here())ui.hmBarMsg={id,h,txt:GMSG[k]};else toast(GMSG[k]);redraw();return}
     if(!t||t.closed||!hs(t).includes(h)){redraw();toast("No se usó la medición: la vuelta cambió.");return}
     ui.hmPos={id,h,la:p.la,lo:p.lo,ac:p.ac};ui.hmOrg[id+"|"+h]={v:"aqui",top:hmTop(t,h)};
-    if(!here())toast(`Medido en el hoyo ${h+1} (±${Math.round(p.ac)} m)`);redraw()})}
+    if(!here())toast(`Medido en el hoyo ${h+1} (±${Math.round(p.ac)} m)`);redraw()},here,ui.hmMed)}
 // Web Mercator: píxeles del mundo a zoom z (256·2^z de lado) y de vuelta
 const hmPx=(p,z)=>{const n=256*2**z,s=Math.sin(p.la*Math.PI/180);return[(p.lo+180)/360*n,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n]};
 function hmLL(dx,dy){const v=ui.hm;if(!v||v.la==null)return null;const n=256*2**v.z,[cx,cy]=hmPx(v,v.z),x=cx+dx,y=cy+dy;
@@ -1890,12 +1908,13 @@ function hmGps(s){const v=ui.hm;if(!v||ui.hmBusy||!navigator.geolocation||!hmSlo
     if(!p)return fail(GMSG[k]);
     if(!S.courses.some(c=>c.id===cid)||JSON.stringify(holeMap(cid,h))!==sig){redraw();toast("No se guardó el punto: el mapa cambió.");return}
     if(p.ac>GPS_AC)return fail(`Precisión ±${Math.round(p.ac)} m: no se guardó el punto. Probá de nuevo a cielo abierto.`);
-    hmSave(cid,h,s,p);redraw();vib(8);toast(on()?`Punto cargado (±${Math.round(p.ac)} m)`:`Punto cargado en el hoyo ${h+1} (±${Math.round(p.ac)} m)`)})}
+    hmSave(cid,h,s,p);redraw();vib(8);toast(on()?`Punto cargado (±${Math.round(p.ac)} m)`:`Punto cargado en el hoyo ${h+1} (±${Math.round(p.ac)} m)`)},
+  ()=>S.view==="hmap"&&!!ui.hm&&ui.hm.cid===cid&&ui.hm.h===h,ui.hmBusy)}
 // "Mi ubicación" de la imagen: centra la vista ahí (cualquier precisión); no carga ningún punto
 function hmHere(){const v=ui.hm;if(!v||ui.hmBusy||!navigator.geolocation)return;const cid=v.cid;ui.hmBusy={cid,h:v.h,s:null};ui.hmMsg=null;render();
   hmRead((p,k)=>{ui.hmBusy=null;const w=ui.hm;
     if(S.view==="hmap"&&w&&w.cid===cid){if(p){w.la=p.la;w.lo=p.lo}else ui.hmMsg={cid,h:w.h,txt:GMSG[k]}}
-    if(S.view==="hmap")render()})}
+    if(S.view==="hmap")render()},()=>S.view==="hmap"&&!!ui.hm&&ui.hm.cid===cid&&ui.hm.h===h,ui.hmBusy)}
 function hmGo(){const v=ui.hm,el=document.getElementById("hm-ll");if(!v||!el)return;const t=el.value,q=t.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
   if(q&&numIn(+q[1],-90,90)&&numIn(+q[2],-180,180)){v.la=+q[1];v.lo=+q[2];ui.hmMsg=null;ui.hmLLtxt=""}
   else{ui.hmMsg={cid:v.cid,h:v.h,txt:"Coordenadas no válidas. Ejemplo: -38.0629, -57.5823"};ui.hmLLtxt=t}render()}
@@ -1903,7 +1922,7 @@ function hmGo(){const v=ui.hm,el=document.getElementById("hm-ll");if(!v||!el)ret
 function vHmEdit(){const v=ui.hm,c=v&&S.courses.find(x=>x.id===v.cid);if(!c||isFoot(c)){ui.hm=null;S.view="rounds";return vRounds()}hmSelOk();
   const m=holeMap(c.id,v.h),sl=hmSlots(m),bz=ui.hmBusy,api=!!navigator.geolocation,o=m&&Array.isArray(m.o)?m.o:[];
   const msg=ui.hmMsg&&ui.hmMsg.cid===c.id&&ui.hmMsg.h===v.h?`<p class="hmmsg" role="status">${esc(ui.hmMsg.txt)}</p>`:"";
-  const slot=x=>`<div class="hmslot" data-s="${x.s}"><button type="button" class="hmsel" data-a="hmsel" data-s="${x.s}" aria-pressed="${v.sel===x.s}">${x.t}</button><span class="hmst">${!x.p?"sin cargar":has(x.p,"ac")?`GPS ±${Math.round(x.p.ac)} m`:"de la imagen"}</span><button type="button" class="btn small" data-a="hmgps" data-s="${x.s}" aria-label="Cargar ${x.a} con el GPS"${bz||!api?" disabled":""}>${bz&&bz.s===x.s&&bz.cid===c.id&&bz.h===v.h?"Buscando GPS…":"Mi ubicación"}</button>${x.p?`<button type="button" class="btn small" data-a="hmclr" data-s="${x.s}" aria-label="Borrar ${x.a}">✕</button>`:""}</div>`;
+  const slot=x=>`<div class="hmslot" data-s="${x.s}"><button type="button" class="hmsel" data-a="hmsel" data-s="${x.s}" aria-pressed="${v.sel===x.s}">${x.t}</button><span class="hmst">${!x.p?"sin cargar":has(x.p,"ac")?`GPS ±${Math.round(x.p.ac)} m`:"de la imagen"}</span><button type="button" class="btn small" data-a="hmgps" data-s="${x.s}" aria-label="Cargar ${x.a} con el GPS"${bz||!api?" disabled":""}${bz&&bz.s===x.s&&bz.cid===c.id&&bz.h===v.h?' data-gpsp="hm">'+gpsLab(bz,"Buscando GPS…"):">Mi ubicación"}</button>${x.p?`<button type="button" class="btn small" data-a="hmclr" data-s="${x.s}" aria-label="Borrar ${x.a}">✕</button>`:""}</div>`;
   let list=sl.filter(x=>x.i==null).map(slot).join("");const n={b:0,w:0,o:0};
   o.forEach((x,i)=>{const nm=`${HM_KINDS[x.k]} ${++n[x.k]}`;
     list+=`<div class="hmobs" data-i="${i}"><b>${nm}</b><div class="seg" role="group" aria-label="Lado de ${nm}">${Object.entries(HM_SIDES).map(([k,t])=>`<button type="button" data-a="hmside" data-i="${i}" data-v="${k}" aria-pressed="${x.l===k}">${t}</button>`).join("")}</div><button type="button" class="btn small" data-a="hmdel" data-i="${i}">Quitar</button></div>`+sl.filter(q=>q.i===i).map(slot).join("")});
@@ -1913,7 +1932,7 @@ function vHmEdit(){const v=ui.hm,c=v&&S.courses.find(x=>x.id===v.cid);if(!c||isF
     img=`<div class="hmmap"><div class="hmlayer">${pts}</div><div class="hmzoom"><button type="button" data-a="hmzoom" data-v="1" aria-label="Acercar"${v.z>=HM_ZMAX?" disabled":""}>+</button><button type="button" data-a="hmzoom" data-v="-1" aria-label="Alejar"${v.z<=HM_ZMIN?" disabled":""}>−</button></div></div>`}
   const full=o.length>=HM_MAXO;
   return`<div class="stack hmedit"><div class="row hmtop"><h2 id="hmT">Mapa · ${esc(c.name)} · hoyo ${v.h+1}</h2><div class="row"><button type="button" class="btn small" data-a="hmh" data-v="-1" aria-label="Hoyo anterior"${v.h<=0?" disabled":""}>‹</button><button type="button" class="btn small" data-a="hmh" data-v="1" aria-label="Hoyo siguiente"${v.h>=17?" disabled":""}>›</button><button type="button" class="btn small primary" data-a="hmback">Listo</button></div></div>
-  ${img}<div class="hmfoot">${v.la==null?"<span></span>":`<span class="hmattr">Imagen: Esri, Vantor, Earthstar Geographics, and the GIS User Community</span>`}<button type="button" class="btn small" data-a="hmhere"${bz||!api?" disabled":""}>${bz&&bz.s==null?"Buscando GPS…":"Mi ubicación"}</button></div>
+  ${img}<div class="hmfoot">${v.la==null?"<span></span>":`<span class="hmattr">Imagen: Esri, Vantor, Earthstar Geographics, and the GIS User Community</span>`}<button type="button" class="btn small" data-a="hmhere"${bz||!api?" disabled":""}${bz&&bz.s==null?' data-gpsp="hm">'+gpsLab(bz,"Buscando GPS…"):">Mi ubicación"}</button></div>
   ${v.la==null?"":`<p class="hmoff"${ui.hmOff?"":" hidden"}>La imagen no cargó (¿sin conexión?). Podés cargar los puntos con Mi ubicación.</p>`}${msg}
   <div class="stack" style="gap:0">${list}</div>
   <div class="row">${Object.entries(HM_KINDS).map(([k,t])=>`<button type="button" class="btn small" data-a="hmadd" data-v="${k}"${full?" disabled":""}>+ ${t}</button>`).join("")}</div>
@@ -2181,7 +2200,7 @@ function vSheet(){if(!ui.themes)return"";const dark=S.mode==="oscuro"||(S.mode==
     return`<button type="button" class="skin" data-a="skin" data-v="${k.id}" aria-pressed="${S.skin===k.id}"><span class="prev" style="background:${bg}"><span class="pb" style="background:${blk};color:${tx}"><b style="font-family:${ff.replace(/"/g,"&quot;")}">Hoyo 7</b><i style="background:${ac}"></i></span></span><span class="nm">${k.nombre}</span><span class="ds">${k.desc}${k.dark?"":" Solo claro."}</span></button>`}).join("")}</div>
   <div class="row" style="justify-content:space-between"><span class="label">Modo</span><div class="seg" role="group" aria-label="Modo">${[["claro","Claro"],["oscuro","Oscuro"],["sistema","Sistema"]].map(([k,l])=>`<button type="button" data-a="mode" data-v="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join("")}</div></div>
   <p class="note">Al sol conviene Claro. Sistema sigue al celular. El tema queda guardado en este celular.</p></div></div>`}
-function render(){applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg()+vGreen()+vShots();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
+function render(){gpsCut(false);applyTheme();document.documentElement.classList.toggle("focusing",S.view==="hole"&&!!S.focus&&!!R());document.getElementById("sheet").innerHTML=vSheet()+vImg()+vGreen()+vShots();keepAwake();const r=R(),v=S.view||"games";const app=document.getElementById("app");
   document.getElementById("meta").innerHTML=r?`${fmtDate(r.date)}<br>${teeSet(r).length>1?"Varias salidas":teeNames(r)}`:"";
   // Deshacer y rehacer: sin nada en la pila, o con un formulario abierto (el borrador se pisaría), quedan deshabilitados
   const lock=["setup","course","incoming"].includes(v);[["undo","u","Deshacer"],["redo","r","Rehacer"]].forEach(([id,k,w])=>{const bt=document.getElementById(id);if(!bt)return;
@@ -2349,7 +2368,7 @@ function init(){S=load();histBase();loadHist();if(!S.view)S.view="games";documen
     if((e.key==="ArrowUp"||e.key==="ArrowDown")&&e.target.classList&&e.target.classList.contains("grip")){e.preventDefault();const i=+e.target.dataset.v,t=i+(e.key==="ArrowUp"?-1:1);movePlayer(i,t);const g=document.querySelector(`.grip[data-v="${t}"]`);if(g)g.focus()}cKey(e)});
   document.addEventListener("input",cInput);
   // El historial de deshacer se guarda al pasar a segundo plano: en la cancha la app se cierra sin aviso
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveHist()});window.addEventListener("pagehide",()=>saveHist());
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveHist()});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")gpsCut(true)});window.addEventListener("pagehide",()=>saveHist());
   document.addEventListener("pointerdown",onGripDown);document.addEventListener("pointermove",onGripMove);document.addEventListener("pointerup",onGripUp);document.addEventListener("pointercancel",onGripUp);
   document.addEventListener("pointerdown",onHmDown);document.addEventListener("pointermove",onHmMove);document.addEventListener("pointerup",onHmUp);document.addEventListener("pointercancel",onHmUp);document.addEventListener("focusin",e=>{if(e.target.closest&&e.target.closest("table.cedit"))setTimeout(()=>{try{e.target.select()}catch(x){}},0)});
   const app=document.getElementById("app");app.addEventListener("touchstart",onTouchStart,{passive:true});app.addEventListener("touchend",onTouchEnd,{passive:true});
@@ -2386,7 +2405,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;if(ui.shots){touch0=nu
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="4f419d88ac";
+const VERSION="0b2b834152";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
