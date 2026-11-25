@@ -176,6 +176,9 @@ h2{font-family:var(--display);font-weight:600;font-size:24px;margin:0;text-wrap:
 .extras .ex:first-child{grid-column:1}
 .extras .ex:nth-child(2){grid-column:3}
 .extras .chip.bk{grid-column:4}
+.pkrow{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pkrow .label{min-width:52px}
+.pkrow .chip{height:32px;padding:0 10px}
 .ex{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
 .ex .seg button{min-width:42px}
 .seg.na{position:relative;opacity:.55}
@@ -830,6 +833,15 @@ const MS=["corto","largo","izq","der"];
 const GV={pd:v=>intIn(v,1,99),ch:v=>intIn(v,0,9),ms:v=>MS.includes(v)?v:null};
 function cleanGreen(x){if(x&&typeof x==="object")Object.keys(GV).forEach(k=>{if(has(x,k)&&GV[k](x[k])==null)delete x[k]});return x}
 function setG(x,k,v){if(v==null)delete x[k];else x[k]=v}
+// Tipo de cada penalidad, opcional: pk = lista de tipos, sin huecos y con largo ≤ pen. Las penalidades de más (pen − largo) son
+// "sin tipo", así un pen viejo sin pk no cambia. El orden no importa. Sin tipos = la clave no está (nunca [] ni null).
+// pen sigue contando golpes de penalidad (un OB suma 1); lo que cuesta cada tipo lo dice penCost
+const PKS=[["ob","OB","Fuera de límites"],["ag","Agua","Agua"],["in","Injug.","Injugable"],["ot","Otra","Otra penalidad"]];
+const PKV=PKS.map(t=>t[0]);
+function cleanPk(x){if(!x||typeof x!=="object"||!has(x,"pk"))return x;const n=intIn(x.pen,0,6)||0;
+  const l=Array.isArray(x.pk)?x.pk.filter(t=>PKV.includes(t)).slice(0,n):[];if(l.length)x.pk=l;else delete x.pk;return x}
+// Golpes que cuestan las penalidades: un OB es golpe y distancia (2), agua, injugable, otra y sin tipo, 1
+const penCost=o=>o.pen+o.ob;
 // Marcas de golpe con GPS por celda, solo de "Yo": gps = [{n número de golpe, la, lo, ac precisión en m, t hora en ms, c palo?}],
 // ordenadas por n y sin n repetidos. Sin marcas = la clave no está (nunca [] ni null)
 const CLUBS=[["dr","Driver","Dr"],["m3","Madera 3","M3"],["m5","Madera 5","M5"],["m7","Madera 7","M7"],["h3","Híbrido 3","H3"],["h4","Híbrido 4","H4"],["h5","Híbrido 5","H5"],
@@ -1254,19 +1266,19 @@ function vHcp(name,isMe){const{cards,wait}=hcpCards(hcpRounds(name,isMe)),n=card
    <details class="rule"><summary>Tarjetas que cuentan</summary><div class="g-lines" style="margin-top:6px">${last.map((c,i)=>[c,i]).reverse().map(([c,i])=>`<div${best.has(i)?' class="best"':""}><span>${ddmm(c.date)} · ${esc(c.lab)}</span><span>${toPar(c.tp)}${best.has(i)?" ✓":""}</span></div>`).join("")}</div></details>${foot}</div>`}
 
 /* ---------- stats ---------- */
-function stats(r,p){const o={s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}};
+function stats(r,p){const o={s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,ob:0,ag:0,in:0,ot:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}};
   hs(r).forEach(h=>{const x=r.d[h][p],par=PP(r,p)[h];if(x.s==null)return;o.s+=x.s;o.par+=par;o.n++;
     const d=x.s-par;o.dist[d<=-2?"e":d===-1?"b":d===0?"p":d===1?"bo":d===2?"d":"t"]++;o.pt[par][0]+=x.s;o.pt[par][1]++;
     if(par>=4&&x.fw){o.fwN++;if(x.fw==="c")o.fw++;else if(x.fw==="l")o.fwL++;else o.fwR++}
     if(x.p!=null){o.pN++;o.putts+=x.p;if(x.p>=3)o.three++;if(x.p===1)o.one++;o.girN++;if(x.s-x.p<=par-2)o.gir++}
-    o.pen+=x.pen||0;if(x.bk){o.bk++;if(x.s<=par)o.ss++}});return o}
+    o.pen+=x.pen||0;(x.pk||[]).forEach(t=>o[t]++);if(x.bk){o.bk++;if(x.s<=par)o.ss++}});return o}
 const pct=(a,b)=>b?Math.round(a/b*100)+"%":"–";
 
 /* ---------- estado ---------- */
 let S;
 const migrate=r=>{if(r.games&&r.games.fourball&&r.teams&&r.teams.every(t=>t.length===1)&&!("rr"in r.games))r.games.rr=true;if(!r.course)r.course=BUILTIN.id;return r};
 // Los datos de antes de las canchas no traen ninguna: arrancan con la Cancha Nueva, que es donde se jugaron
-function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEach(h=>{if(Array.isArray(h))h.forEach(x=>cleanGps(cleanGreen(x)))})});const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
+function norm(j){j.rounds.forEach(r=>{migrate(r);if(Array.isArray(r.d))r.d.forEach(h=>{if(Array.isArray(h))h.forEach(x=>cleanPk(cleanGps(cleanGreen(x))))})});const cs=(Array.isArray(j.courses)?j.courses:[]).map(cleanCourse).filter(Boolean);
   j.courses=cs.filter((c,i)=>cs.findIndex(x=>x.id===c.id)===i);
   // Antes se llamaba solo "Cancha Nueva": si nadie le cambió el nombre, pasa al nuevo
   j.courses.forEach(c=>{if(c.id===BUILTIN.id&&c.name==="Cancha Nueva")c.name=BUILTIN.name});
@@ -1346,8 +1358,8 @@ function loadHist(){HIST={u:[],r:[]};let o;try{o=JSON.parse(localStorage.getItem
   if(e&&(e.ch.some(c=>((HB.m.get(c.id)||{}).j??null)!==c[side])||e.cs&&e.cs[side]!==HB.cs||e.me&&e.me[side]!==HB.me||e.mp&&e.mp[side]!==HB.mp))return;
   HIST={u:o.u.slice(-HMAX),r:o.r}}
 // Etiqueta, clave de grupo y hoyo de cada acción de onClick que cambia datos (null: las demás)
-const CELLK={s:"s",sset:"s",pt:"pt",pen:"pen",fw:"fw",bk:"bk",g1:"pd",gc:"ch",gm:"ms"};
-const CELLT={s:"score",pt:"putts",pen:"penalidades",fw:"drive",bk:"bunker",pd:"primer putt",ch:"golpes cerca del green",ms:"green errado"};
+const CELLK={s:"s",sset:"s",pt:"pt",pen:"pen",pk:"pk",fw:"fw",bk:"bk",g1:"pd",gc:"ch",gm:"ms"};
+const CELLT={s:"score",pt:"putts",pen:"penalidades",pk:"tipo de penalidad",fw:"drive",bk:"bunker",pd:"primer putt",ch:"golpes cerca del green",ms:"green errado"};
 // Las marcas de GPS (gpc, gpn, gpsdel) son de la celda de "Yo"; i es el índice de la marca y n su número antes del cambio
 function actOf(a,v,r,h,p,i){const one=t=>({t,k:null,go:null}),byId=id=>S.rounds.find(x=>x.id===id);
   if(["hmclr","hmadd","hmdel","hmside"].includes(a))return ui.hm?hmAct(ui.hm.cid,ui.hm.h):null;
@@ -1400,6 +1412,11 @@ function vFocusHead(r,k,h,L,c){const me=r.me!=null?r.me:0;let tot=0,tp=0,n=0;
    <div class="fh-foot"><span><b>${esc(nm(r,me))}</b> ${n?`${tot} <em>${toPar(tp)}</em> · ${n} ${n===1?"hoyo":"hoyos"}`:"sin hoyos todavía"}</span>${lv?`<button type="button" class="fh-live" data-a="live"><small>${esc(lv[0])}</small> ${esc(lv[1])}</button>`:""}</div>
   </section>`}
 // Quien no carga drive, penalidades ni bunker en esta vuelta los ve recién si los empieza a usar (vos, siempre)
+// Una fila por penalidad para elegir su tipo: primero las que tienen tipo (en el orden de pk), después las "sin tipo"
+function pkRows(x,p,name){const n=x.pen||0,l=x.pk||[];let o="";
+  for(let i=0;i<n;i++){const k=l[i]||null;
+    o+=`<div class="pkrow" role="group" aria-label="Tipo de la penalidad ${i+1} de ${esc(name)}"><span class="label">${n===1?"Tipo":"Pen. "+(i+1)}</span>${PKS.map(([v,t,lab])=>`<button type="button" class="chip" data-a="pk" data-p="${p}" data-v="${i}:${v}" aria-pressed="${k===v}" aria-label="${lab}">${t}</button>`).join("")}</div>`}
+  return o}
 const fullCard=(r,p)=>p===r.me||needs(r).fw||hs(r).some(hh=>{const x=r.d[hh][p];return x.fw!=null||x.pen>0||x.bk});
 // Barra de GPS, arriba de todo en el hoyo: marcar el golpe de "Yo" y el resumen, que abre la hoja de golpes.
 // Con la vuelta cerrada se ve solo si hay marcas, y no se puede tocar
@@ -1449,7 +1466,7 @@ function vHole(r){const L=hs(r),k=Math.min(r.cur,L.length-1),h=L[k],mixed=teeSet
     ${S.focus&&!fullCard(r,p)?"":`<div class="extras"><div class="ex"><span class="label">Drive</span>${par>=4?`<div class="seg">${[["l","←"],["c","FW"],["r","→"]].map(([v,t])=>`<button data-a="fw" data-p="${p}" data-v="${v}" aria-pressed="${x.fw===v}" aria-label="${v==="c"?"Fairway":v==="l"?"Errado a la izquierda":"Errado a la derecha"}">${t}</button>`).join("")}</div>`:`<div class="seg na" aria-hidden="true"><button tabindex="-1" disabled>←</button><button tabindex="-1" disabled>FW</button><button tabindex="-1" disabled>→</button></div>`}</div>
      <div class="ex"><span class="label">Penal.</span><div class="step sm"><button data-a="pen" data-p="${p}" data-v="-1" aria-label="Restar penalidad">−</button><span class="val num" style="display:grid;place-items:center">${x.pen||0}</span><button data-a="pen" data-p="${p}" data-v="1" aria-label="Sumar penalidad">+</button></div></div>
      <button class="chip bk" data-a="bk" data-p="${p}" aria-pressed="${x.bk}">Bunker</button>
-     </div>`}${gch?`<div class="gline"><button type="button" class="gchip${gt?" on":""}" data-a="gopen" data-p="${p}" aria-label="Datos de green de ${esc(name)}">${gt?"Green · "+esc(gt):"+ Green"}</button>${quit}</div>`:quit}</div>`});
+     </div>${pkRows(x,p,name)}`}${gch?`<div class="gline"><button type="button" class="gchip${gt?" on":""}" data-a="gopen" data-p="${p}" aria-label="Datos de green de ${esc(name)}">${gt?"Green · "+esc(gt):"+ Green"}</button>${quit}</div>`:quit}</div>`});
   html+=`${S.focus?"</div>":""}</fieldset>${courseMap(c)&&!S.focus?`<details class="mapbox"${ui.map?" open":""}><summary data-a="map">Mapa de la cancha</summary><img src="${courseMap(c)[0]}" alt="${courseMap(c)[1]}"></details>`:""}
   ${S.focus?'<div class="fbar">':""}${pl.length&&ui.warned===r.id+":"+h?`<div class="pendbox" role="alert"><b>Falta cargar ${esc(pendTxt(r,pl))}.</b><span>Tocá de nuevo para seguir igual.</span></div>`:""}
   <div class="navrow"><button class="btn" data-a="go" data-v="${k-1}" ${k===0?"disabled":""}>← Hoyo ${k>0?L[k-1]+1:""}</button>${k===L.length-1?(r.closed?`<button class="btn" data-a="tab" data-v="games">Ver juegos</button>`:`<button class="btn primary" data-a="close">Cerrar vuelta${pl.length?`<span class="pc">${pl.length}</span>`:""}</button>`):`<button class="btn primary" data-a="go" data-v="${k+1}" data-chk="1">Hoyo ${L[k+1]+1} →${pl.length?`<span class="pc" aria-label="${pl.length} sin cargar">${pl.length}</span>`:""}</button>`}</div>${S.focus?"</div>":""}
@@ -1479,12 +1496,18 @@ function vStatsRound(r,hist){const mk=meKey(),hp=hist?idxOf(r,S.histP,mk):-1,p=h
   const chips=`<div class="pchips">${r.players.map((n,i)=>`<button class="chip" data-a="${hist?"hp":"sp"}" data-v="${hist?esc(pk(r,i,mk)):i}" aria-pressed="${i===p}">${esc(n)}${i===r.me?" (vos)":""}</button>`).join("")}</div>`;
   if(!o.n)return`<div class="stack">${chips}<p class="muted">${esc(nm(r,p))} todavía no tiene hoyos cargados.</p>${vGpsStats([{r,p}])}${vHcp(nm(r,p),r.me===p)}</div>`;
   const grp=r.players.map((n,i)=>{const s=stats(r,i);return`<tr><td style="text-align:left">${esc(n)}</td><td>${s.n?s.s+" ("+toPar(s.s-s.par)+")":"–"}</td><td>${pct(s.fw,s.fwN)}</td><td>${pct(s.gir,s.girN)}</td><td>${s.pN?(s.putts/s.pN).toFixed(1).replace(".",","):"–"}</td></tr>`}).join("");
-  return`<div class="stack">${chips}${statBlocks(o,tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`),tile("Penalidades",o.pen,"golpes de penalidad"))}
+  return`<div class="stack">${chips}${statBlocks(o,tile("Score",o.s,`${toPar(o.s-o.par)} en ${o.n} hoyos`),tile("Penalidades",o.pen,penSub(o)))}
   <div class="label">Comparación del grupo</div>
   <div class="tablewrap"><table class="card"><thead><tr><th style="text-align:left">Jugador</th><th>Score</th><th>FW</th><th>GIR</th><th>Putts/h</th></tr></thead><tbody>${grp}</tbody></table></div>
   <div class="tile"><div class="label">Sobre par, hoyo a hoyo</div><div class="chartwrap">${chToPar(r)}</div></div>
   ${doneH(r).length&&(okR("fourball",r)||r.players.length===2)?`<div class="tile"><div class="label">${okR("fourball",r)?"Four-ball":"Match play"}, hoyo a hoyo</div><div class="chartwrap">${okR("fourball",r)?chFourball(r):GCH.rr(r)}</div></div>`:""}
   ${vGpsStats([{r,p}])}${vHcp(nm(r,p),r.me===p)}</div>`}
+// Abajo del total de penalidades: cuántas de cada tipo y lo que costaron (un OB, 2 golpes). Sin ningún tipo marcado, el texto
+// de siempre: las vueltas viejas se ven igual que antes (decisión de Loren, 2026-11-25)
+const pkN=o=>o.ob+o.ag+o.in+o.ot;
+function penSub(o){if(!o.pen||!pkN(o))return"golpes de penalidad";const sin=o.pen-o.ob-o.ag-o.in-o.ot;
+  const l=[...PKS.map(([k,t])=>o[k]?`${o[k]} ${k==="ob"?t:t.toLowerCase()}`:"").filter(Boolean),sin?`${sin} sin tipo`:""].filter(Boolean);
+  return`golpes de penalidad · ${l.join(" · ")}${o.ob?` · cuestan ${penCost(o)} golpes (OB: golpe y distancia)`:""}`}
 const tile=(lab,big,sub,bar)=>`<div class="tile"><div class="label">${lab}</div><div class="big">${big}</div><div class="sub">${sub}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:""}</div>`;
 // Fairways, GIR, putts, bunkers, distribución y promedio por tipo de hoyo (los dos primeros tiles los pone quien llama)
 function statBlocks(o,t1,t2){const avg=a=>a[1]?(a[0]/a[1]).toFixed(1).replace(".",","):"–";
@@ -1543,9 +1566,9 @@ function people(){const mk=meKey(),m=new Map();
   return[...m.values()].sort((a,b)=>(b.k===mk)-(a.k===mk)||b.c-a.c||a.name.localeCompare(b.name))}
 function histPick(ps){const mk=meKey(),sel=ps.some(e=>e.k===S.histP)?S.histP:ps[0].k;
   return{sel,mk,chips:`<div class="pchips">${ps.map(e=>`<button class="chip" data-a="hp" data-v="${esc(e.k)}" aria-pressed="${e.k===sel}">${esc(e.name)}${e.k===mk?" (vos)":""}</button>`).join("")}</div>`}}
-function addStats(a,b){["s","par","n","fw","fwN","fwL","fwR","gir","girN","putts","pN","three","one","pen","bk","ss"].forEach(k=>a[k]+=b[k]);
+function addStats(a,b){["s","par","n","fw","fwN","fwL","fwR","gir","girN","putts","pN","three","one","pen","ob","ag","in","ot","bk","ss"].forEach(k=>a[k]+=b[k]);
   Object.keys(a.dist).forEach(k=>a.dist[k]+=b.dist[k]);[3,4,5].forEach(t=>{a.pt[t][0]+=b.pt[t][0];a.pt[t][1]+=b.pt[t][1]});return a}
-const zeroStats=()=>({s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}});
+const zeroStats=()=>({s:0,par:0,n:0,fw:0,fwN:0,fwL:0,fwR:0,gir:0,girN:0,putts:0,pN:0,three:0,one:0,pen:0,ob:0,ag:0,in:0,ot:0,bk:0,ss:0,dist:{e:0,b:0,p:0,bo:0,d:0,t:0},pt:{3:[0,0],4:[0,0],5:[0,0]}});
 // Las vueltas de la más nueva a la más vieja; el mismo día, la creada después primero
 const byDate=()=>[...S.rounds].sort((a,b)=>b.date.localeCompare(a.date)||(b.id>a.id?1:-1));
 // La vuelta "de hoy": la más nueva en juego o, si están todas cerradas, la más nueva
@@ -1577,7 +1600,7 @@ function vStatsAll(){const ps=people();
     return`<tr><td style="text-align:left">${esc(h.name)}</td><td>${h.n}</td><td>${h.w}</td><td>${h.l}</td><td>${h.t}</td><td>${d===0?"=":(d<0?"−":"+")+fmt1(Math.abs(d))}</td></tr>`}).join("")}</tbody></table></div>
     <p class="note">Por golpes totales en las vueltas completas que jugaron juntos. Dif. es el promedio de golpes de ${esc(who.name)} contra cada uno: negativo, le saca ventaja.</p>`:"";
   const last=`<div class="label">Últimas vueltas</div><div class="g-lines">${rs.slice(0,12).map(e=>`<div><span>${fmtDate(e.r.date)} · ${crsLab(e.r)}${e.r.n===18?"18 hoyos":e.r.start===0?"Ida":"Vuelta"}${e.x.n<e.r.n?` · ${e.x.n} h`:""} · ${esc(TEEP(e.r,e.p).name)}</span><span>${e.x.s} (${toPar(e.x.s-e.x.par)})</span></div>`).join("")}</div>`;
-  return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${vs}${last}${vGpsStats(rs)}${vHcp(who.name,sel===mk)}</div>`}
+  return`<div class="stack">${chips}${statBlocks(o,sc18,vt)}${pkN(o)?`<div class="tiles">${tile("Penalidades",o.pen,penSub(o))}</div>`:""}${vs}${last}${vGpsStats(rs)}${vHcp(who.name,sel===mk)}</div>`}
 
 // Ganadores de cada juego en una vuelta terminada: [{pl:jugadores, w:ganadores}] (Snake: l = quien perdió)
 // El historial usa el mismo cálculo que la vista de la vuelta (H2): un solo lugar por juego
@@ -2134,8 +2157,10 @@ async function unpack(s){const u=b64u.dec(s.slice(1));
 // Sin "me": quién es quién lo elige cada uno al abrir el link. La cancha viaja entera salvo que sea la de fábrica sin cambios
 const shareObj=r=>({v:1,course:CRS(r).id,c:JSON.stringify(CRS(r))===JSON.stringify(BUILTIN)?undefined:CRS(r),id:r.id,date:r.date,tee:r.tee,tees:r.players.map((_,p)=>teeK(r,p)),n:r.n,start:r.start,players:r.players,teams:r.teams,closed:!!r.closed,
   games:GAMES.map(g=>g[0]).filter(k=>r.games[k]),wolf:r.wolf||{},bbb:r.bbb||{},grn:r.grn||{},out:r.out||{},
-  // Los datos del green van en las posiciones 5 a 7, solo en las celdas que tienen alguno (la versión vieja lee solo 0 a 4)
-  d:r.d.map(h=>h.map(x=>{const c=[x.s,x.p,x.fw,x.pen||0,x.bk?1:0];return has(x,"pd")||has(x,"ch")||has(x,"ms")?[...c,x.pd??null,x.ch??null,x.ms??null]:c}))});
+  // Los datos del green van en las posiciones 5 a 7 y los tipos de penalidad en la 8, solo en las celdas que tienen alguno
+  // (la versión vieja lee solo 0 a 4, o 0 a 7)
+  d:r.d.map(h=>h.map(x=>{const c=[x.s,x.p,x.fw,x.pen||0,x.bk?1:0],g=has(x,"pd")||has(x,"ch")||has(x,"ms"),k=has(x,"pk");
+    return g||k?[...c,x.pd??null,x.ch??null,x.ms??null,...k?[x.pk]:[]]:c}))});
 // Lo que llega por link no es de confianza: se reconstruye la vuelta con valores válidos
 // Devuelve [vuelta, cancha que trajo el link o null]; los links de antes de las canchas son de la Cancha Nueva
 function cleanShared(o){if(!o||o.v!==1)throw 0;
@@ -2146,7 +2171,7 @@ function cleanShared(o){if(!o||o.v!==1)throw 0;
   const teams=[0,1].map(t=>Array.isArray(o.teams)&&Array.isArray(o.teams[t])?[...new Set(o.teams[t].filter(ok))]:[]);
   const d=Array.from({length:18},(_,h)=>players.map((_,p)=>{const c=Array.isArray(o.d)&&Array.isArray(o.d[h])&&Array.isArray(o.d[h][p])?o.d[h][p]:[];
     const x={s:int(c[0],1,15),p:int(c[1],0,6),fw:["c","l","r"].includes(c[2])?c[2]:null,pen:int(c[3],0,6)||0,bk:c[4]===1};
-    ["pd","ch","ms"].forEach((k,i)=>{const g=GV[k](c[5+i]);if(g!=null)x[k]=g});return x}));
+    ["pd","ch","ms"].forEach((k,i)=>{const g=GV[k](c[5+i]);if(g!=null)x[k]=g});if(Array.isArray(c[8])){x.pk=c[8];cleanPk(x)}return x}));
   const games={};GAMES.forEach(([k])=>games[k]=Array.isArray(o.games)&&o.games.includes(k));if(games.fourball&&teams.every(t=>t.length===1))games.rr=true;
   const wolf={};if(o.wolf&&typeof o.wolf==="object")Object.entries(o.wolf).forEach(([h,v])=>{const k=+h;if(Number.isInteger(k)&&k>=0&&k<18&&(v==="lone"||v==="blind"||ok(v)))wolf[k]=v});
   const bbb={},grn={};
@@ -2211,7 +2236,7 @@ function render(){gpsCut(false);applyTheme();document.documentElement.classList.
   if(S.view==="hmap")hmDraw()}
 function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,p=+b.dataset.p,r=R();
   const h=r?hs(r)[Math.min(r.cur,r.n-1)]:null,x=r&&h!=null?r.d[h][p]:null;let scrollTop=false;
-  if(r&&r.closed&&["s","sset","pt","pen","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen","gps","gpsopen","gpk","gpc","gpn","gpsdel"].includes(a))return;
+  if(r&&r.closed&&["s","sset","pt","pen","pk","fw","bk","wolf","bbb","grn","out","g1","gc","gm","gopen","gps","gpsopen","gpk","gpc","gpn","gpsdel"].includes(a))return;
   if(S.view==="course")readCDraft();const cd=ui.cdraft;
   // Para deshacer: qué cambio es este y si sigue el grupo del toque anterior (los controles de una celda, el número y el palo de una marca)
   const gi=+b.dataset.i,gx=r&&a.startsWith("gp")?gpsMe(r,h):null,gm=gx&&gx.gps&&gx.gps[gi];
@@ -2239,7 +2264,10 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
    case"s":x.s=x.s==null?PP(r,p)[h]:Math.max(1,Math.min(15,x.s+(+v)));break;
    case"sset":if(x.s==null)x.s=PP(r,p)[h];break;
    case"pt":x.p=x.p==null?(+v>0?2:1):Math.max(0,Math.min(6,x.p+(+v)));break;
-   case"pen":x.pen=Math.max(0,Math.min(6,(x.pen||0)+(+v)));break;
+   case"pen":x.pen=Math.max(0,Math.min(6,(x.pen||0)+(+v)));if(x.pk&&x.pk.length>x.pen)x.pk.length=x.pen;if(x.pk&&!x.pk.length)delete x.pk;break;
+   // Tocar el tipo elegido lo saca (la penalidad queda sin tipo); otro tipo lo cambia; en una sin tipo, se lo pone
+   case"pk":{const[i,k]=[+v.split(":")[0],v.split(":")[1]];if(!PKV.includes(k)||!(i>=0&&i<(x.pen||0)))return;const l=x.pk||[];
+     if(i<l.length){if(l[i]===k)l.splice(i,1);else l[i]=k}else l.push(k);if(l.length)x.pk=l;else delete x.pk;break}
    case"fw":x.fw=x.fw===v?null:v;break;
    case"bk":x.bk=!x.bk;break;
    case"g1":setG(x,"pd",x.pd===+v?null:GV.pd(+v));break;
@@ -2329,7 +2357,7 @@ function onClick(e){const b=e.target.closest("[data-a]");if(!b||b.disabled)retur
      try{navigator.clipboard.writeText(t.value).then(()=>{done();markBackup();save()},()=>{t.select();b.textContent="Seleccionado: copialo"})}catch(err){t.select();b.textContent="Seleccionado: copialo"}return}
    case"impok":doImport(document.getElementById("imp-text").value);break;
    default:return}
-  if(["s","sset","pt","pen","fw","bk","go","wolf","bbb","grn","g1","gc","gm"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
+  if(["s","sset","pt","pen","pk","fw","bk","go","wolf","bbb","grn","g1","gc","gm"].includes(a))vib(8);if(a==="close")vib([30,40,30]);
   save();render();if(scrollTop)window.scrollTo(0,0)}
 function doImport(txt){try{const j=JSON.parse(txt);if(!j||!Array.isArray(j.rounds)||!j.rounds.length||!j.rounds.every(r=>r.d&&r.players))throw 0;
   S=norm(j);markBackup();if(!S.rounds.some(r=>r.id===S.cur))S.cur=S.rounds[0].id;S.view="rounds";ui.imp=false;ui.impErr="";
@@ -2405,7 +2433,7 @@ function onTouchEnd(e){if(!touch0||S.view!=="hole")return;if(ui.shots){touch0=nu
   if(dx<0&&!r.closed&&r.cur<r.n-1&&!pendGate(r,hs(r)[r.cur])){vib([20,40,20]);toast("Falta cargar "+pendTxt(r,pend(r,hs(r)[r.cur])));render();return}const k=Math.max(0,Math.min(r.n-1,r.cur+(dx<0?1:-1)));if(k===r.cur)return;
   ui.dir=Math.sign(k-r.cur);r.cur=k;ui.grp=null;ui.gs=null;ui.shots=false;ui.gpsMsg=null;ui.hmBarMsg=null;vib(8);save();render();window.scrollTo(0,0)}
 // build.py reemplaza la marca por el número de versión del sitio
-const VERSION="0b2b834152";
+const VERSION="2c6dfb924c";
 async function checkUpdate(){let reg=null;try{reg=await navigator.serviceWorker.getRegistration()}catch(e){}
   if(!reg){toast("Sin conexión con el sitio: probá de nuevo con señal.");return}toast("Buscando…");
   try{await reg.update()}catch(e){toast("Sin señal: no se pudo buscar.");return}
